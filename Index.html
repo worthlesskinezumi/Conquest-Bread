@@ -475,36 +475,53 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;hei
   <div class="section-label">Live Bake Session</div>
   <div id="bake-no-session" class="empty-state"><div class="empty-icon">🔥</div>No active bake session.<br>Set up a plan in the Planner tab<br>and tap Start Bake Session.</div>
   <div id="bake-session-ui" style="display:none;">
-    <div class="card">
-      <div class="card-title" id="bake-recipe-title">—</div>
-      <div class="stat-grid">
-        <div class="stat-block"><div class="stat-label">Current Stage</div><div class="stat-value" id="bake-current-stage" style="font-size:14px;">—</div></div>
-        <div class="stat-block"><div class="stat-label">Time Remaining</div><div class="stat-value" id="bake-time-remaining" style="font-size:22px;">—</div></div>
-        <div class="stat-block"><div class="stat-label">Stage</div><div class="stat-value" id="bake-stage-num" style="font-size:14px;">—</div></div>
-        <div class="stat-block"><div class="stat-label">Elapsed Total</div><div class="stat-value" id="bake-elapsed" style="font-size:14px;">—</div></div>
-      </div>
-    </div>
 
 ```
+<!-- SESSION HEADER -->
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div class="card-title" id="bake-recipe-title" style="margin-bottom:0;">—</div>
+    <button class="btn btn-secondary btn-sm" onclick="editBakeStartTime()">Edit Start</button>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-block"><div class="stat-label">Current Stage</div><div class="stat-value" id="bake-current-stage" style="font-size:13px;">—</div></div>
+    <div class="stat-block"><div class="stat-label">Time Remaining</div><div class="stat-value" id="bake-time-remaining" style="font-size:22px;">—</div></div>
+    <div class="stat-block"><div class="stat-label">Stage</div><div class="stat-value" id="bake-stage-num" style="font-size:14px;">—</div></div>
+    <div class="stat-block"><div class="stat-label">Elapsed</div><div class="stat-value" id="bake-elapsed" style="font-size:14px;">—</div></div>
+  </div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:4px;">
+    Started: <span id="bake-start-display" style="color:var(--text2);">—</span>
+  </div>
+</div>
+
 <!-- ACTIVE STAGE -->
 <div class="card" id="bake-active-card">
-  <div class="card-title">Active Stage</div>
-  <div id="bake-stage-name" style="font-family:var(--mono);font-weight:700;font-size:18px;color:var(--text);margin-bottom:6px;"></div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Active Stage</div>
+      <div id="bake-stage-name" style="font-family:var(--mono);font-weight:700;font-size:18px;color:var(--text);"></div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="editCurrentStage()">✏ Edit</button>
+  </div>
   <div id="bake-stage-instructions" style="font-family:var(--sans);font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6;"></div>
+  <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:4px;">
+    <span>Planned: <span id="bake-stage-planned" style="color:var(--text2);">—</span></span>
+    <span>End: <span id="bake-stage-end" style="color:var(--accent);">—</span></span>
+  </div>
   <div class="stage-countdown" id="bake-countdown">--:--</div>
   <div class="flex-row mt-8">
-    <button class="btn btn-green" onclick="completeCurrentStage()">✓ Complete Stage</button>
+    <button class="btn btn-green" onclick="completeCurrentStage()">✓ Done</button>
     <button class="btn btn-secondary" onclick="skipStage()">Skip →</button>
   </div>
 </div>
 
-<!-- CHECKPOINT (shown when active stage has checkpoint) -->
+<!-- CHECKPOINT -->
 <div id="bake-checkpoint-card" style="display:none;">
   <div class="checkpoint-card">
     <div class="checkpoint-title">📋 Bulk-O Checkpoint</div>
     <div class="checkpoint-bom" id="checkpoint-bom-content"></div>
     <div class="input-row" style="flex-direction:column;align-items:stretch;">
-      <div class="input-label" style="margin-bottom:4px;">% Rise (current vol / start vol)</div>
+      <div class="input-label" style="margin-bottom:4px;">% Rise</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <input type="number" id="cp-start-vol" placeholder="Start vol (ml)" oninput="calcCpRise()">
         <input type="number" id="cp-current-vol" placeholder="Current vol (ml)" oninput="calcCpRise()">
@@ -521,10 +538,10 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;hei
   </div>
 </div>
 
-<!-- TIMELINE MINI -->
+<!-- FULL TIMELINE — tap any stage to edit -->
 <div class="card">
-  <div class="card-title">Session Timeline</div>
-  <div class="timeline" id="bake-timeline"></div>
+  <div class="card-title">Full Timeline <span style="font-size:10px;color:var(--text3);font-weight:400;">tap any stage to edit</span></div>
+  <div id="bake-full-timeline"></div>
 </div>
 
 <button class="btn btn-danger" onclick="endBakeSession()">■ End Bake Session</button>
@@ -1441,9 +1458,7 @@ function startBakeSession() {
 function renderBakeSession() {
   const noSess = document.getElementById('bake-no-session');
   const sessUI = document.getElementById('bake-session-ui');
-
   if(!state.activeBake) { noSess.style.display='block'; sessUI.style.display='none'; clearInterval(bakeTimerInterval); return; }
-
   noSess.style.display='none';
   sessUI.style.display='block';
 
@@ -1452,747 +1467,895 @@ function renderBakeSession() {
 
   document.getElementById('bake-recipe-title').textContent = bake.recipeName;
   document.getElementById('bake-stage-num').innerHTML = `${bake.currentStageIdx+1}<span class="stat-unit">/${bake.stages.length}</span>`;
-  document.getElementById('bake-stage-name').textContent = stage ? stage.name : 'Done';
-  document.getElementById('bake-stage-instructions').textContent = stage ? (stage.notes||'') : '';
+  document.getElementById('bake-start-display').textContent = new Date(bake.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
-  // Checkpoint card
-  const cpCard = document.getElementById('bake-checkpoint-card');
-  if(stage && stage.checkpoint) {
-    cpCard.style.display='block';
-    renderCheckpointBom();
-  } else {
-    cpCard.style.display='none';
+  if(stage) {
+    document.getElementById('bake-stage-name').textContent = stage.name;
+    document.getElementById('bake-stage-instructions').textContent = stage.notes || '';
+    document.getElementById('bake-stage-planned').textContent = fmtMins(stage.plannedMins || stage.mins);
+    document.getElementById('bake-stage-end').textContent = fmtTime(new Date(stage.endTime));
   }
 
-  renderBakeTimeline();
+  const cpCard = document.getElementById('bake-checkpoint-card');
+  if(stage && stage.checkpoint) { cpCard.style.display='block'; renderCheckpointBom(); }
+  else cpCard.style.display='none';
+
+  renderFullTimeline();
   startBakeTimer();
 }
 
+function renderFullTimeline() {
+  const bake = state.activeBake;
+  const c = document.getElementById('bake-full-timeline');
+  c.innerHTML = `<div class="timeline">${bake.stages.map((s,i) => {
+    const isDone = i < bake.currentStageIdx;
+    const isActive = i === bake.currentStageIdx;
+    const cls = isDone ? 'done' : isActive ? 'active' : '';
+    const plannedMins = s.plannedMins || s.mins;
+    const actualMins = s.actualMins;
+    const delta = actualMins ? actualMins - plannedMins : null;
+    const deltaStr = delta !== null
+      ? `<span style="color:${delta>0?'var(--red)':delta<0?'var(--green)':'var(--text3)'};">${delta>0?'+':''}${delta}m actual</span>`
+      : '';
+    return `<div class="timeline-item ${cls}" onclick="editStageByIndex(${i})" style="cursor:pointer;padding-right:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="timeline-name" style="font-weight:${isActive?'600':'400'}">${s.name}</span>
+        <span style="font-family:var(--mono);font-size:10px;text-align:right;">
+          <span style="color:var(--text3);">${fmtMins(plannedMins)}</span>
+          ${deltaStr ? ' · ' + deltaStr : ''}
+        </span>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">
+        ${s.actualStart ? fmtTime(new Date(s.actualStart)) : fmtTime(new Date(s.startTime))} → ${isDone && s.actualEnd ? fmtTime(new Date(s.actualEnd)) : fmtTime(new Date(s.endTime))}
+        ${isDone ? ' <span style="color:var(--green);">✓</span>' : ''}
+        ${s.edited ? ' <span style="color:var(--blue);">edited</span>' : ''}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function editBakeStartTime() {
+  const bake = state.activeBake;
+  const currentStart = new Date(bake.startedAt);
+  const timeStr = currentStart.toTimeString().slice(0,5);
+
+  showInlineInput(`Set actual start time (was ${fmtTime(currentStart)}):`, timeStr, (val) => {
+    const [h,m] = val.split(':').map(Number);
+    if(isNaN(h)||isNaN(m)) { showToast('Invalid time format','warn'); return; }
+    const newStart = new Date();
+    newStart.setHours(h, m, 0, 0);
+    // If time is in the future assume yesterday
+    if(newStart > new Date()) newStart.setDate(newStart.getDate()-1);
+
+    const diff = newStart.getTime() - bake.startedAt;
+    bake.startedAt = newStart.getTime();
+
+    // Shift all stage times by the same diff
+    bake.stages.forEach(s => {
+      s.startTime += diff;
+      s.endTime += diff;
+    });
+
+    saveState();
+    renderBakeSession();
+    showToast('Start time updated', 'success');
+  });
+}
+
+function editCurrentStage() {
+  editStageByIndex(state.activeBake.currentStageIdx);
+}
+
+function editStageByIndex(idx) {
+  const bake = state.activeBake;
+  const stage = bake.stages[idx];
+  const isActive = idx === bake.currentStageIdx;
+  const isPast = idx < bake.currentStageIdx;
+  const currentMins = stage.plannedMins || stage.mins;
+  const currentHrs = Math.floor(currentMins / 60);
+  const currentMin = currentMins % 60;
+
+  const m = document.createElement('div');
+  m.id = 'breadlab-modal';
+  m.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;`;
+  m.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px;max-width:340px;width:100%;">
+    <div style="font-family:var(--mono);font-weight:700;font-size:14px;color:var(--accent);margin-bottom:4px;">${stage.name}</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:14px;">${isPast?'Completed stage':isActive?'Active stage':'Upcoming stage'}</div>
+
+    <div style="margin-bottom:10px;">
+      <div class="input-label" style="margin-bottom:4px;">${isPast?'Actual duration':'New duration'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:3px;">Hours</div>
+          <input type="number" id="edit-stage-hrs" value="${currentHrs}" min="0" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;outline:none;">
+        </div>
+        <div><div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:3px;">Minutes</div>
+          <input type="number" id="edit-stage-min" value="${currentMin}" min="0" max="59" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;outline:none;">
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <div class="input-label" style="margin-bottom:4px;">Stage notes</div>
+      <textarea id="edit-stage-notes" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;min-height:50px;resize:vertical;">${stage.notes||''}</textarea>
+
+```
+</div>
+
+${!isPast ? `<div style="margin-bottom:12px;">
+  <div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-bottom:6px;">Apply change to future stages?</div>
+  <div style="display:flex;gap:6px;">
+    <button id="recalc-yes" style="flex:1;padding:7px;background:var(--green-dim);border:1px solid var(--green);border-radius:4px;color:var(--green);font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;">Yes — shift all</button>
+    <button id="recalc-no" style="flex:1;padding:7px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text2);font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;">No — keep schedule</button>
+  </div>
+</div>` : ''}
+
+<div style="display:flex;gap:8px;margin-top:4px;">
+  <button onclick="document.getElementById('breadlab-modal').remove()" style="flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
+  <button id="save-stage-edit" style="flex:1;padding:9px;background:var(--accent);border:none;border-radius:4px;color:var(--bg);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Save</button>
+</div>
+```
+
+  </div>`;
+  document.body.appendChild(m);
+
+let recalcFuture = null;
+if(!isPast) {
+document.getElementById(‘recalc-yes’).onclick = function() {
+recalcFuture = true;
+this.style.background = ‘var(–green)’; this.style.color = ‘var(–bg)’;
+document.getElementById(‘recalc-no’).style.background = ‘var(–surface2)’; document.getElementById(‘recalc-no’).style.color = ‘var(–text2)’;
+};
+document.getElementById(‘recalc-no’).onclick = function() {
+recalcFuture = false;
+this.style.background = ‘var(–blue)’; this.style.color = ‘var(–bg)’;
+document.getElementById(‘recalc-yes’).style.background = ‘var(–surface2)’; document.getElementById(‘recalc-yes’).style.color = ‘var(–green)’;
+};
+}
+
+document.getElementById(‘save-stage-edit’).onclick = () => {
+const hrs = parseFloat(document.getElementById(‘edit-stage-hrs’).value) || 0;
+const min = parseFloat(document.getElementById(‘edit-stage-min’).value) || 0;
+const newMins = (hrs * 60) + min;
+const newNotes = document.getElementById(‘edit-stage-notes’).value;
+
+```
+if(!isPast && recalcFuture === null) { showToast('Choose whether to shift future stages', 'warn'); return; }
+
+// Store planned mins first time
+if(!stage.plannedMins) stage.plannedMins = stage.mins;
+
+if(isPast) {
+  // Store as actual duration
+  stage.actualMins = newMins;
+} else {
+  stage.mins = newMins;
+  const newEndTime = stage.startTime + newMins * 60000;
+  const diff = newEndTime - stage.endTime;
+  stage.endTime = newEndTime;
+
+  if(recalcFuture) {
+    // Shift all future stages
+    for(let i = idx + 1; i < bake.stages.length; i++) {
+      bake.stages[i].startTime += diff;
+      bake.stages[i].endTime += diff;
+    }
+  }
+}
+
+stage.notes = newNotes;
+stage.edited = true;
+m.remove();
+saveState();
+renderBakeSession();
+showToast('Stage updated', 'success');
+```
+
+};
+}
+
 function startBakeTimer() {
-  clearInterval(bakeTimerInterval);
-  bakeTimerInterval = setInterval(tickBakeTimer, 1000);
-  tickBakeTimer();
+clearInterval(bakeTimerInterval);
+bakeTimerInterval = setInterval(tickBakeTimer, 1000);
+tickBakeTimer();
 }
 
 function tickBakeTimer() {
-  if(!state.activeBake) { clearInterval(bakeTimerInterval); return; }
-  const bake = state.activeBake;
-  const now = Date.now();
-  const elapsed = now - bake.startedAt;
-  document.getElementById('bake-elapsed').textContent = fmtDuration(elapsed);
+if(!state.activeBake) { clearInterval(bakeTimerInterval); return; }
+const bake = state.activeBake;
+const now = Date.now();
+const elapsed = now - bake.startedAt;
+document.getElementById(‘bake-elapsed’).textContent = fmtDuration(elapsed);
 
-  const stage = bake.stages[bake.currentStageIdx];
-  if(!stage) { document.getElementById('bake-countdown').textContent='Done!'; document.getElementById('bake-time-remaining').textContent='Done'; return; }
+const stage = bake.stages[bake.currentStageIdx];
+if(!stage) { document.getElementById(‘bake-countdown’).textContent=‘Done!’; document.getElementById(‘bake-time-remaining’).textContent=‘Done’; return; }
 
-  const stageRemaining = stage.endTime - now;
-  const display = stageRemaining > 0 ? fmtDuration(stageRemaining) : '00:00';
-  document.getElementById('bake-countdown').textContent = display;
-  document.getElementById('bake-countdown').className = 'stage-countdown' + (stageRemaining < 120000 && stageRemaining > 0 ? ' urgent' : '');
-  document.getElementById('bake-time-remaining').textContent = display;
-  document.getElementById('bake-current-stage').textContent = stage.name;
+const stageRemaining = stage.endTime - now;
+const display = stageRemaining > 0 ? fmtDuration(stageRemaining) : ‘⏰ 00:00’;
+document.getElementById(‘bake-countdown’).textContent = display;
+document.getElementById(‘bake-countdown’).className = ‘stage-countdown’ + (stageRemaining < 120000 && stageRemaining > 0 ? ’ urgent’ : ‘’);
+document.getElementById(‘bake-time-remaining’).textContent = stageRemaining > 0 ? fmtDuration(stageRemaining) : ‘Overdue’;
+document.getElementById(‘bake-current-stage’).textContent = stage.name;
+const endEl = document.getElementById(‘bake-stage-end’);
+if(endEl) endEl.textContent = fmtTime(new Date(stage.endTime));
 
-  // Auto-notify when stage ends
-  if(stageRemaining <= 0 && !stage._notified) {
-    stage._notified = true;
-    if(stage.notify) sendNotification('Stage Complete: '+stage.name, 'Tap to open BreadLab');
-  }
+if(stageRemaining <= 0 && !stage._notified) {
+stage._notified = true;
+if(stage.notify) sendNotification(’Stage Complete: ’+stage.name, ‘Tap to open BreadLab’);
+}
 }
 
 function fmtDuration(ms) {
-  if(ms<=0) return '00:00';
-  const totalSec = Math.floor(ms/1000);
-  const h = Math.floor(totalSec/3600);
-  const m = Math.floor((totalSec%3600)/60);
-  const s = totalSec%60;
-  if(h>0) return `${h}:${pad(m)}:${pad(s)}`;
-  return `${pad(m)}:${pad(s)}`;
+if(ms<=0) return ‘00:00’;
+const totalSec = Math.floor(ms/1000);
+const h = Math.floor(totalSec/3600);
+const m = Math.floor((totalSec%3600)/60);
+const s = totalSec%60;
+if(h>0) return `${h}:${pad(m)}:${pad(s)}`;
+return `${pad(m)}:${pad(s)}`;
 }
 
-function pad(n){return n.toString().padStart(2,'0');}
+function pad(n){return n.toString().padStart(2,‘0’);}
 
 function completeCurrentStage() {
-  if(!state.activeBake) return;
-  const bake = state.activeBake;
-  const stage = bake.stages[bake.currentStageIdx];
-  if(stage) stage.completed = true;
+if(!state.activeBake) return;
+const bake = state.activeBake;
+const stage = bake.stages[bake.currentStageIdx];
+if(stage) stage.completed = true;
 
-  if(stage && stage.checkpoint) {
-    // Save checkpoint data before advancing
-    saveCheckpoint(true);
-    return;
-  }
-  advanceStage();
+if(stage && stage.checkpoint) {
+// Save checkpoint data before advancing
+saveCheckpoint(true);
+return;
+}
+advanceStage();
 }
 
 function advanceStage() {
-  const bake = state.activeBake;
-  bake.currentStageIdx++;
-  if(bake.currentStageIdx >= bake.stages.length) {
-    // All stages done — go to review
-    endBakeSessionAndReview();
-    return;
-  }
-  const nextStage = bake.stages[bake.currentStageIdx];
-  if(nextStage && !nextStage.startTime) nextStage.startTime = Date.now();
-  saveState();
-  renderBakeSession();
-  sendNotification('Next Stage: '+nextStage.name, nextStage.notes||'');
+const bake = state.activeBake;
+const now = Date.now();
+
+// Record actual times on completed stage
+const done = bake.stages[bake.currentStageIdx];
+if(done) {
+if(!done.plannedMins) done.plannedMins = done.mins;
+if(!done.actualStart) done.actualStart = done.startTime;
+done.actualEnd = now;
+done.actualMins = Math.round((now - done.actualStart) / 60000);
+}
+
+bake.currentStageIdx++;
+if(bake.currentStageIdx >= bake.stages.length) {
+endBakeSessionAndReview(); return;
+}
+
+const next = bake.stages[bake.currentStageIdx];
+next.actualStart = now;
+next.startTime = now;
+next.endTime = now + next.mins * 60000;
+if(!next.plannedMins) next.plannedMins = next.mins;
+
+saveState();
+renderBakeSession();
+sendNotification(‘Next Stage: ‘+next.name, next.notes||’’);
 }
 
 function skipStage() {
-  if(!state.activeBake) return;
-  state.activeBake.stages[state.activeBake.currentStageIdx].completed = true;
-  advanceStage();
+if(!state.activeBake) return;
+state.activeBake.stages[state.activeBake.currentStageIdx].completed = true;
+advanceStage();
 }
 
 function renderBakeTimeline() {
-  const bake = state.activeBake;
-  const c = document.getElementById('bake-timeline');
-  c.innerHTML = bake.stages.map((s,i)=>{
-    let cls = i < bake.currentStageIdx ? 'done' : i === bake.currentStageIdx ? 'active' : '';
-    return `<div class="timeline-item ${cls}">
-      <span class="timeline-name">${s.name}</span>
-      <span class="timeline-time">${s.completed?'✓':fmtTime(new Date(s.endTime))}</span>
-    </div>`;
-  }).join('');
+const bake = state.activeBake;
+const c = document.getElementById(‘bake-timeline’);
+c.innerHTML = bake.stages.map((s,i)=>{
+let cls = i < bake.currentStageIdx ? ‘done’ : i === bake.currentStageIdx ? ‘active’ : ‘’;
+return `<div class="timeline-item ${cls}"> <span class="timeline-name">${s.name}</span> <span class="timeline-time">${s.completed?'✓':fmtTime(new Date(s.endTime))}</span> </div>`;
+}).join(’’);
 }
 
 function renderCheckpointBom() {
-  cpBomSelections = {};
-  const c = document.getElementById('checkpoint-bom-content');
-  // Compact version of BOM for checkpoints
-  c.innerHTML = BOM_CRITERIA.map(cr=>`
-    <div style="margin-bottom:8px;">
-      <div class="bom-label" style="font-size:10px;">${cr.label}</div>
-      <div class="bom-scale">
-        ${cr.under.map(o=>`<button class="bom-option" onclick="selectCpBom('${cr.id}','under','${o}',this)">${o}</button>`).join('')}
-        ${cr.desired.map(o=>`<button class="bom-option" onclick="selectCpBom('${cr.id}','desired','${o}',this)">${o}</button>`).join('')}
-        ${cr.over.map(o=>`<button class="bom-option" onclick="selectCpBom('${cr.id}','over','${o}',this)">${o}</button>`).join('')}
-      </div>
-    </div>`).join('');
+cpBomSelections = {};
+const c = document.getElementById(‘checkpoint-bom-content’);
+// Compact version of BOM for checkpoints
+c.innerHTML = BOM_CRITERIA.map(cr=>` <div style="margin-bottom:8px;"> <div class="bom-label" style="font-size:10px;">${cr.label}</div> <div class="bom-scale"> ${cr.under.map(o=>`<button class="bom-option" onclick="selectCpBom('${cr.id}','under','${o}',this)">${o}</button>`).join('')} ${cr.desired.map(o=>`<button class="bom-option" onclick="selectCpBom('${cr.id}','desired','${o}',this)">${o}</button>`).join('')} ${cr.over.map(o=>`<button class="bom-option" onclick="selectCpBom('${cr.id}','over','${o}',this)">${o}</button>`).join('')} </div> </div>`).join(’’);
 }
 
 function selectCpBom(cId, range, val, el) {
-  const parent = el.closest('[style]');
-  if(parent) parent.querySelectorAll('.bom-option').forEach(b=>b.classList.remove('selected-under','selected-desired','selected-over'));
-  cpBomSelections[cId]={range,val};
-  el.classList.add('selected-'+range);
+const parent = el.closest(’[style]’);
+if(parent) parent.querySelectorAll(’.bom-option’).forEach(b=>b.classList.remove(‘selected-under’,‘selected-desired’,‘selected-over’));
+cpBomSelections[cId]={range,val};
+el.classList.add(‘selected-’+range);
 }
 
 function calcCpRise() {
-  const start = parseFloat(document.getElementById('cp-start-vol').value)||0;
-  const cur = parseFloat(document.getElementById('cp-current-vol').value)||0;
-  if(!start){ document.getElementById('cp-rise-display').textContent=''; return; }
-  const rise = Math.max(0,Math.round(((cur-start)/start)*100));
-  const temp = parseInt(state.activeBake?.temp||80);
-  const g = BOM_GUIDANCE[temp]||BOM_GUIDANCE[80];
-  const status = rise<g.riseLow?'Under' : rise<=g.riseHigh?'In Range':'Over';
-  document.getElementById('cp-rise-display').textContent=`Rise: ${rise}% — ${status}`;
+const start = parseFloat(document.getElementById(‘cp-start-vol’).value)||0;
+const cur = parseFloat(document.getElementById(‘cp-current-vol’).value)||0;
+if(!start){ document.getElementById(‘cp-rise-display’).textContent=’’; return; }
+const rise = Math.max(0,Math.round(((cur-start)/start)*100));
+const temp = parseInt(state.activeBake?.temp||80);
+const g = BOM_GUIDANCE[temp]||BOM_GUIDANCE[80];
+const status = rise<g.riseLow?‘Under’ : rise<=g.riseHigh?‘In Range’:‘Over’;
+document.getElementById(‘cp-rise-display’).textContent=`Rise: ${rise}% — ${status}`;
 }
 
 function handlePhotoNote(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = document.getElementById('cp-photo-preview');
-    img.src = e.target.result;
-    img.style.display='block';
-    window._cpPhotoData = e.target.result;
-  };
-  reader.readAsDataURL(file);
+const file = input.files[0];
+if(!file) return;
+const reader = new FileReader();
+reader.onload = e => {
+const img = document.getElementById(‘cp-photo-preview’);
+img.src = e.target.result;
+img.style.display=‘block’;
+window._cpPhotoData = e.target.result;
+};
+reader.readAsDataURL(file);
 }
 
 function saveCheckpoint(fromComplete=false) {
-  const bake = state.activeBake;
-  const stage = bake.stages[bake.currentStageIdx];
-  const startVol = parseFloat(document.getElementById('cp-start-vol').value)||0;
-  const curVol = parseFloat(document.getElementById('cp-current-vol').value)||0;
-  const rise = startVol ? Math.max(0,Math.round(((curVol-startVol)/startVol)*100)) : null;
+const bake = state.activeBake;
+const stage = bake.stages[bake.currentStageIdx];
+const startVol = parseFloat(document.getElementById(‘cp-start-vol’).value)||0;
+const curVol = parseFloat(document.getElementById(‘cp-current-vol’).value)||0;
+const rise = startVol ? Math.max(0,Math.round(((curVol-startVol)/startVol)*100)) : null;
 
-  const cp = {
-    stageIdx: bake.currentStageIdx,
-    stageName: stage.name,
-    time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
-    bomSelections: {...cpBomSelections},
-    rise: rise !== null ? rise+'%' : null,
-    notes: document.getElementById('cp-notes').value,
-    photo: window._cpPhotoData || null
-  };
-  bake.checkpoints.push(cp);
-  window._cpPhotoData = null;
-  saveState();
+const cp = {
+stageIdx: bake.currentStageIdx,
+stageName: stage.name,
+time: new Date().toLocaleTimeString([],{hour:‘2-digit’,minute:‘2-digit’}),
+bomSelections: {…cpBomSelections},
+rise: rise !== null ? rise+’%’ : null,
+notes: document.getElementById(‘cp-notes’).value,
+photo: window._cpPhotoData || null
+};
+bake.checkpoints.push(cp);
+window._cpPhotoData = null;
+saveState();
 
-  if(fromComplete) advanceStage();
+if(fromComplete) advanceStage();
 }
 
 function endBakeSession() {
-  showInlineConfirm(
-    'End bake session?',
-    'This will take you to the post-bake review.',
-    'End Session',
-    endBakeSessionAndReview
-  );
+showInlineConfirm(
+‘End bake session?’,
+‘This will take you to the post-bake review.’,
+‘End Session’,
+endBakeSessionAndReview
+);
 }
 
 function endBakeSessionAndReview() {
-  clearInterval(bakeTimerInterval);
-  if(!state.activeBake) return;
-  state.pendingReview = { ...state.activeBake, endedAt: Date.now() };
-  state.activeBake = null;
-  document.getElementById('live-bake-pill').style.display='none';
-  saveState();
+clearInterval(bakeTimerInterval);
+if(!state.activeBake) return;
+state.pendingReview = { …state.activeBake, endedAt: Date.now() };
+state.activeBake = null;
+document.getElementById(‘live-bake-pill’).style.display=‘none’;
+saveState();
 
-  // Show review page — use same pattern as showPage()
-  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  const reviewPage = document.getElementById('page-review');
-  reviewPage.style.display = 'block';
-  reviewPage.classList.add('active');
-  document.getElementById('review-recipe-name').textContent = state.pendingReview.recipeName + ' — Bake Review';
-  reviewData = {};
-  window.scrollTo(0, 0);
+// Show review page — use same pattern as showPage()
+document.querySelectorAll(’.page’).forEach(p=>p.style.display=‘none’);
+document.querySelectorAll(’.nav-tab’).forEach(t=>t.classList.remove(‘active’));
+const reviewPage = document.getElementById(‘page-review’);
+reviewPage.style.display = ‘block’;
+reviewPage.classList.add(‘active’);
+document.getElementById(‘review-recipe-name’).textContent = state.pendingReview.recipeName + ’ — Bake Review’;
+reviewData = {};
+window.scrollTo(0, 0);
 }
 
 // ═══════════════════════════════════════════════════
 // POST-BAKE REVIEW
 // ═══════════════════════════════════════════════════
 function setScore(n) {
-  reviewData.score = n;
-  document.querySelectorAll('.score-star').forEach((s,i)=>s.classList.toggle('active',i<n));
+reviewData.score = n;
+document.querySelectorAll(’.score-star’).forEach((s,i)=>s.classList.toggle(‘active’,i<n));
 }
 
 function selectCrumb(field, el, val) {
-  reviewData[field] = val;
-  const group = el.closest('.crumb-grid');
-  if(group) group.querySelectorAll('.crumb-option').forEach(o=>o.classList.remove('selected'));
-  el.classList.add('selected');
+reviewData[field] = val;
+const group = el.closest(’.crumb-grid’);
+if(group) group.querySelectorAll(’.crumb-option’).forEach(o=>o.classList.remove(‘selected’));
+el.classList.add(‘selected’);
 }
 
 function saveReview() {
-  if(!state.pendingReview) return;
-  const bake = state.pendingReview;
-  const duration = bake.endedAt - bake.startedAt;
+if(!state.pendingReview) return;
+const bake = state.pendingReview;
+const duration = bake.endedAt - bake.startedAt;
 
-  const entry = {
-    id: bake.id,
-    date: new Date().toLocaleDateString(),
-    time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
-    recipeId: bake.recipeId,
-    recipeName: bake.recipeName,
-    loaves: bake.loaves,
-    temp: bake.temp+'°F',
-    duration: fmtDuration(duration),
-    checkpoints: bake.checkpoints||[],
-    review: {
-      score: reviewData.score||0,
-      proofing: reviewData.proofing||'',
-      crumb: reviewData.crumb||'',
-      crust: reviewData.crust||'',
-      flavor: reviewData.flavor||'',
-      spring: reviewData.spring||'',
-      tasting: document.getElementById('review-tasting').value,
-      adjustments: document.getElementById('review-adjustments').value
-    },
-    verdict: reviewData.proofing||'Logged'
-  };
+const entry = {
+id: bake.id,
+date: new Date().toLocaleDateString(),
+time: new Date().toLocaleTimeString([],{hour:‘2-digit’,minute:‘2-digit’}),
+recipeId: bake.recipeId,
+recipeName: bake.recipeName,
+loaves: bake.loaves,
+temp: bake.temp+‘°F’,
+duration: fmtDuration(duration),
+stages: (bake.stages||[]).map(s => ({
+name: s.name,
+plannedMins: s.plannedMins || s.mins,
+actualMins: s.actualMins || null,
+actualStart: s.actualStart || null,
+actualEnd: s.actualEnd || null,
+edited: s.edited || false,
+notes: s.notes || ‘’
+})),
+checkpoints: bake.checkpoints||[],
+review: {
+score: reviewData.score||0,
+proofing: reviewData.proofing||’’,
+crumb: reviewData.crumb||’’,
+crust: reviewData.crust||’’,
+flavor: reviewData.flavor||’’,
+spring: reviewData.spring||’’,
+tasting: document.getElementById(‘review-tasting’).value,
+adjustments: document.getElementById(‘review-adjustments’).value
+},
+verdict: reviewData.proofing||‘Logged’
+};
 
-  state.bakeLogs.unshift(entry);
-  state.pendingReview = null;
-  saveState();
-  saveLogToCloud(entry);
-  showPage('log', document.querySelectorAll('.nav-tab')[7]);
+state.bakeLogs.unshift(entry);
+state.pendingReview = null;
+saveState();
+saveLogToCloud(entry);
+showPage(‘log’, document.querySelectorAll(’.nav-tab’)[7]);
 }
 
 function skipReview() {
-  if(state.pendingReview) {
-    const entry = {
-      id: state.pendingReview.id,
-      date: new Date().toLocaleDateString(),
-      time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
-      recipeId: state.pendingReview.recipeId,
-      recipeName: state.pendingReview.recipeName,
-      loaves: state.pendingReview.loaves,
-      temp: state.pendingReview.temp+'°F',
-      duration: fmtDuration(state.pendingReview.endedAt - state.pendingReview.startedAt),
-      checkpoints: state.pendingReview.checkpoints||[],
-      review: null,
-      verdict: 'No review'
-    };
-    state.bakeLogs.unshift(entry);
-    state.pendingReview = null;
-    saveState();
-  }
-  showPage('log', document.querySelectorAll('.nav-tab')[7]);
+if(state.pendingReview) {
+const entry = {
+id: state.pendingReview.id,
+date: new Date().toLocaleDateString(),
+time: new Date().toLocaleTimeString([],{hour:‘2-digit’,minute:‘2-digit’}),
+recipeId: state.pendingReview.recipeId,
+recipeName: state.pendingReview.recipeName,
+loaves: state.pendingReview.loaves,
+temp: state.pendingReview.temp+‘°F’,
+duration: fmtDuration(state.pendingReview.endedAt - state.pendingReview.startedAt),
+checkpoints: state.pendingReview.checkpoints||[],
+review: null,
+verdict: ‘No review’
+};
+state.bakeLogs.unshift(entry);
+state.pendingReview = null;
+saveState();
+}
+showPage(‘log’, document.querySelectorAll(’.nav-tab’)[7]);
 }
 
 // ═══════════════════════════════════════════════════
 // STARTERS
 // ═══════════════════════════════════════════════════
 function calcEdwardFeed() {
-  const keep=parseFloat(document.getElementById('ed-keep').value)||40;
-  const ratioSel=document.getElementById('ed-ratio').value;
-  document.getElementById('ed-custom-ratio').style.display=ratioSel==='custom'?'block':'none';
-  let r1,r2,r3;
-  if(ratioSel==='custom'){r1=parseFloat(document.getElementById('ed-r1').value)||1;r2=parseFloat(document.getElementById('ed-r2').value)||3;r3=parseFloat(document.getElementById('ed-r3').value)||5;}
-  else{[r1,r2,r3]=ratioSel.split(':').map(Number);}
-  const water=Math.round((keep*r2/r1)*10)/10;
-  const flour=Math.round((keep*r3/r1)*10)/10;
-  const total=Math.round((keep+water+flour)*10)/10;
-  const hyd=Math.round((water/flour)*100);
-  document.getElementById('ed-discard').textContent=keep+'g (keep this much)';
-  document.getElementById('ed-water').textContent=water+'g';
-  document.getElementById('ed-flour').textContent=flour+'g';
-  document.getElementById('ed-total').textContent=total+'g';
-  document.getElementById('ed-hyd').textContent=hyd+'%';
+const keep=parseFloat(document.getElementById(‘ed-keep’).value)||40;
+const ratioSel=document.getElementById(‘ed-ratio’).value;
+document.getElementById(‘ed-custom-ratio’).style.display=ratioSel===‘custom’?‘block’:‘none’;
+let r1,r2,r3;
+if(ratioSel===‘custom’){r1=parseFloat(document.getElementById(‘ed-r1’).value)||1;r2=parseFloat(document.getElementById(‘ed-r2’).value)||3;r3=parseFloat(document.getElementById(‘ed-r3’).value)||5;}
+else{[r1,r2,r3]=ratioSel.split(’:’).map(Number);}
+const water=Math.round((keep*r2/r1)*10)/10;
+const flour=Math.round((keep*r3/r1)*10)/10;
+const total=Math.round((keep+water+flour)*10)/10;
+const hyd=Math.round((water/flour)*100);
+document.getElementById(‘ed-discard’).textContent=keep+‘g (keep this much)’;
+document.getElementById(‘ed-water’).textContent=water+‘g’;
+document.getElementById(‘ed-flour’).textContent=flour+‘g’;
+document.getElementById(‘ed-total’).textContent=total+‘g’;
+document.getElementById(‘ed-hyd’).textContent=hyd+’%’;
 }
 
 function setAlRatio(r1, r2, r3) {
-  document.getElementById('al-r1').value = r1;
-  document.getElementById('al-r2').value = r2;
-  document.getElementById('al-r3').value = r3;
-  calcAlphonse();
+document.getElementById(‘al-r1’).value = r1;
+document.getElementById(‘al-r2’).value = r2;
+document.getElementById(‘al-r3’).value = r3;
+calcAlphonse();
 }
 
 function calcAlphonse() {
-  const target = parseFloat(document.getElementById('al-target').value) || 100;
-  const hydSel = document.getElementById('al-hydration').value;
-  document.getElementById('al-custom-hyd').style.display = hydSel === 'custom' ? 'block' : 'none';
-  const hyd = hydSel === 'custom' ? (parseFloat(document.getElementById('al-custom-hyd-val').value) || 100) : parseFloat(hydSel);
+const target = parseFloat(document.getElementById(‘al-target’).value) || 100;
+const hydSel = document.getElementById(‘al-hydration’).value;
+document.getElementById(‘al-custom-hyd’).style.display = hydSel === ‘custom’ ? ‘block’ : ‘none’;
+const hyd = hydSel === ‘custom’ ? (parseFloat(document.getElementById(‘al-custom-hyd-val’).value) || 100) : parseFloat(hydSel);
 
-  const r1 = parseFloat(document.getElementById('al-r1').value) || 1;
-  const r2 = parseFloat(document.getElementById('al-r2').value) || 10;
-  const r3 = parseFloat(document.getElementById('al-r3').value) || 10;
-  const roomTemp = parseFloat(document.getElementById('al-room-temp').value) || 72;
+const r1 = parseFloat(document.getElementById(‘al-r1’).value) || 1;
+const r2 = parseFloat(document.getElementById(‘al-r2’).value) || 10;
+const r3 = parseFloat(document.getElementById(‘al-r3’).value) || 10;
+const roomTemp = parseFloat(document.getElementById(‘al-room-temp’).value) || 72;
 
-  // Seed = target * (r1 / (r1+r2+r3))
-  const seed = Math.round(target * (r1 / (r1 + r2 + r3)) * 10) / 10;
-  const remaining = target - seed;
-  const flour = Math.round(remaining / (1 + hyd / 100) * 10) / 10;
-  const water = Math.round((remaining - flour) * 10) / 10;
+// Seed = target * (r1 / (r1+r2+r3))
+const seed = Math.round(target * (r1 / (r1 + r2 + r3)) * 10) / 10;
+const remaining = target - seed;
+const flour = Math.round(remaining / (1 + hyd / 100) * 10) / 10;
+const water = Math.round((remaining - flour) * 10) / 10;
 
-  // Rise time estimate based on ratio and temp
-  // Base: 1:1:1 at 75°F = ~4hrs. Each doubling of ratio adds ~1.5hrs. Temp adjusts by ~15min per degree from 75
-  const ratioFactor = r2 / r1; // feed multiple
-  const baseHours = 3 + (Math.log2(Math.max(1, ratioFactor)) * 1.5);
-  const tempDelta = (75 - roomTemp) * 0.25; // cooler = longer
-  const estHours = Math.max(1, baseHours + tempDelta);
-  const estLow = Math.max(1, Math.round((estHours - 1) * 2) / 2);
-  const estHigh = Math.round((estHours + 1) * 2) / 2;
+// Rise time estimate based on ratio and temp
+// Base: 1:1:1 at 75°F = ~4hrs. Each doubling of ratio adds ~1.5hrs. Temp adjusts by ~15min per degree from 75
+const ratioFactor = r2 / r1; // feed multiple
+const baseHours = 3 + (Math.log2(Math.max(1, ratioFactor)) * 1.5);
+const tempDelta = (75 - roomTemp) * 0.25; // cooler = longer
+const estHours = Math.max(1, baseHours + tempDelta);
+const estLow = Math.max(1, Math.round((estHours - 1) * 2) / 2);
+const estHigh = Math.round((estHours + 1) * 2) / 2;
 
-  const edAvail = parseFloat(document.getElementById('ed-keep').value) || 40;
+const edAvail = parseFloat(document.getElementById(‘ed-keep’).value) || 40;
 
-  document.getElementById('al-seed').textContent = seed + 'g';
-  document.getElementById('al-water').textContent = water + 'g';
-  document.getElementById('al-flour').textContent = flour + 'g';
-  document.getElementById('al-total').textContent = target + 'g';
-  document.getElementById('al-hyd-out').textContent = hyd + '%';
-  document.getElementById('al-ratio-display').textContent = `${r1}:${r2}:${r3}`;
-  document.getElementById('al-edward-check').textContent = `Need ${seed}g · Edward has ~${edAvail}g`;
-  document.getElementById('al-rise-est').textContent = `${estLow}–${estHigh} hrs at ${roomTemp}°F`;
+document.getElementById(‘al-seed’).textContent = seed + ‘g’;
+document.getElementById(‘al-water’).textContent = water + ‘g’;
+document.getElementById(‘al-flour’).textContent = flour + ‘g’;
+document.getElementById(‘al-total’).textContent = target + ‘g’;
+document.getElementById(‘al-hyd-out’).textContent = hyd + ‘%’;
+document.getElementById(‘al-ratio-display’).textContent = `${r1}:${r2}:${r3}`;
+document.getElementById(‘al-edward-check’).textContent = `Need ${seed}g · Edward has ~${edAvail}g`;
+document.getElementById(‘al-rise-est’).textContent = `${estLow}–${estHigh} hrs at ${roomTemp}°F`;
 
-  const notice = document.getElementById('al-feeds-notice');
-  if(seed > edAvail) {
-    notice.style.display = 'block';
-    notice.textContent = `⚠ Need ${seed}g seed but Edward only has ~${edAvail}g. Feed Edward up first.`;
-  } else {
-    notice.style.display = 'none';
-  }
+const notice = document.getElementById(‘al-feeds-notice’);
+if(seed > edAvail) {
+notice.style.display = ‘block’;
+notice.textContent = `⚠ Need ${seed}g seed but Edward only has ~${edAvail}g. Feed Edward up first.`;
+} else {
+notice.style.display = ‘none’;
+}
 
-  // Store active build for planner sync
-  window._activeBuild = { target, hyd, r1, r2, r3, roomTemp, seed, water, flour, estLow, estHigh };
+// Store active build for planner sync
+window._activeBuild = { target, hyd, r1, r2, r3, roomTemp, seed, water, flour, estLow, estHigh };
 }
 
 function saveActiveBuild() {
-  if(!window._activeBuild) { showToast('Calculate Alphonse first.', 'warn'); return; }
-  const b = window._activeBuild;
-  state.activeBuild = b;
-  saveState();
-  const display = document.getElementById('al-active-build-display');
-  display.style.display = 'block';
-  display.textContent = `✓ Active build saved: ${b.target}g at ${b.hyd}% hyd, ratio ${b.r1}:${b.r2}:${b.r3} · Est. ${b.estLow}–${b.estHigh} hrs`;
-  showToast('Active build synced to Planner!', 'success');
+if(!window._activeBuild) { showToast(‘Calculate Alphonse first.’, ‘warn’); return; }
+const b = window._activeBuild;
+state.activeBuild = b;
+saveState();
+const display = document.getElementById(‘al-active-build-display’);
+display.style.display = ‘block’;
+display.textContent = `✓ Active build saved: ${b.target}g at ${b.hyd}% hyd, ratio ${b.r1}:${b.r2}:${b.r3} · Est. ${b.estLow}–${b.estHigh} hrs`;
+showToast(‘Active build synced to Planner!’, ‘success’);
 }
 
 // ── DDT CALCULATOR ──
 function calcDDT() {
-  const target = parseFloat(document.getElementById('ddt-target').value) || 80;
-  const room = parseFloat(document.getElementById('ddt-room').value) || 72;
-  const flour = parseFloat(document.getElementById('ddt-flour').value) || 70;
-  const starter = parseFloat(document.getElementById('ddt-starter').value) || 72;
-  const mixer = document.getElementById('ddt-mixer').checked;
-  const friction = mixer ? 4 : 0;
+const target = parseFloat(document.getElementById(‘ddt-target’).value) || 80;
+const room = parseFloat(document.getElementById(‘ddt-room’).value) || 72;
+const flour = parseFloat(document.getElementById(‘ddt-flour’).value) || 70;
+const starter = parseFloat(document.getElementById(‘ddt-starter’).value) || 72;
+const mixer = document.getElementById(‘ddt-mixer’).checked;
+const friction = mixer ? 4 : 0;
 
-  // DDT formula: water temp = (target × factors) - (room + flour + starter + friction)
-  const factors = 4; // room, flour, starter, water = 4 variables
-  const waterTemp = Math.round((target * factors) - (room + flour + starter + friction));
+// DDT formula: water temp = (target × factors) - (room + flour + starter + friction)
+const factors = 4; // room, flour, starter, water = 4 variables
+const waterTemp = Math.round((target * factors) - (room + flour + starter + friction));
 
-  document.getElementById('ddt-water-temp').textContent = waterTemp + '°F';
-  document.getElementById('ddt-friction').textContent = friction + '°F ' + (mixer ? '(mixer)' : '(hand mix)');
-  document.getElementById('ddt-factors').textContent = `Room ${room}° + Flour ${flour}° + Starter ${starter}°`;
+document.getElementById(‘ddt-water-temp’).textContent = waterTemp + ‘°F’;
+document.getElementById(‘ddt-friction’).textContent = friction + ’°F ’ + (mixer ? ‘(mixer)’ : ‘(hand mix)’);
+document.getElementById(‘ddt-factors’).textContent = `Room ${room}° + Flour ${flour}° + Starter ${starter}°`;
 
-  const notice = document.getElementById('ddt-notice');
-  if(waterTemp > 100) {
-    notice.style.display = 'block';
-    notice.className = 'notice danger mt-8';
-    notice.textContent = `⚠ Water temp ${waterTemp}°F is very hot — will damage starter. Lower your DDT target or cool your environment.`;
-  } else if(waterTemp < 40) {
-    notice.style.display = 'block';
-    notice.className = 'notice mt-8';
-    notice.textContent = `Ice water needed. Add ice to get water to ${waterTemp}°F.`;
-  } else {
-    notice.style.display = 'none';
-  }
+const notice = document.getElementById(‘ddt-notice’);
+if(waterTemp > 100) {
+notice.style.display = ‘block’;
+notice.className = ‘notice danger mt-8’;
+notice.textContent = `⚠ Water temp ${waterTemp}°F is very hot — will damage starter. Lower your DDT target or cool your environment.`;
+} else if(waterTemp < 40) {
+notice.style.display = ‘block’;
+notice.className = ‘notice mt-8’;
+notice.textContent = `Ice water needed. Add ice to get water to ${waterTemp}°F.`;
+} else {
+notice.style.display = ‘none’;
+}
 }
 
 // ═══════════════════════════════════════════════════
 // YEAST CONVERTER
 // ═══════════════════════════════════════════════════
 function calcYeastConversion() {
-  const flour=parseFloat(document.getElementById('yc-flour').value)||500;
-  const yeastType=document.getElementById('yc-type').value;
-  const yeastAmt=parseFloat(document.getElementById('yc-yeast').value)||7;
-  const water=parseFloat(document.getElementById('yc-water').value)||375;
-  const starterPct=parseFloat(document.getElementById('yc-starter-pct').value)/100;
-  const starterHyd=parseFloat(document.getElementById('yc-starter-hyd').value)/100;
-  const starterAmt=Math.round(flour*starterPct*10)/10;
-  const starterFlour=Math.round(starterAmt/(1+starterHyd)*10)/10;
-  const starterWater=Math.round(starterAmt-starterFlour);
-  const adjustedWater=Math.round((water-starterWater)*10)/10;
-  const adjustedFlour=Math.round((flour-starterFlour)*10)/10;
-  const salt=Math.round(flour*.02*10)/10;
-  const yeastPct=(yeastAmt/flour)*100;
-  let timingNote='';
-  if(yeastType==='instant') timingNote=`Original used ~${yeastPct.toFixed(2)}% IDY. Sourdough bulk will take 3.5–6 hrs at 80°F. Expect 2–4× longer overall process.`;
-  else if(yeastType==='active') timingNote=`Active dry yeast converted. Expect 4–8 hrs bulk at 75–80°F. Monitor dough closely first bake.`;
-  else timingNote=`Fresh yeast converted. Longer fermentation, superior flavor. Calibrate over first few bakes.`;
-  const originalHyd=Math.round((water/flour)*100);
-  const newHyd=Math.round(((adjustedWater+starterWater)/flour)*100);
-  document.getElementById('yeast-conv-result').style.display='block';
-  document.getElementById('yeast-conv-table').innerHTML=`
-    <table class="data-table">
-      <thead><tr><th>Ingredient</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Baker's %</th></tr></thead>
-      <tbody>
-        <tr><td>Bread Flour (base)</td><td class="val" style="text-align:right;">${adjustedFlour}g</td><td class="pct" style="text-align:right;">${Math.round(adjustedFlour/flour*100)}%</td></tr>
-        <tr><td>Water (adjusted)</td><td class="val" style="text-align:right;">${adjustedWater}g</td><td class="pct" style="text-align:right;">${Math.round(adjustedWater/flour*100)}%</td></tr>
-        <tr><td>Alphonse (${Math.round(starterPct*100)}%)</td><td class="val" style="text-align:right;">${starterAmt}g</td><td class="pct" style="text-align:right;">${Math.round(starterPct*100)}%</td></tr>
-        <tr><td>Salt</td><td class="val" style="text-align:right;">${salt}g</td><td class="pct" style="text-align:right;">2%</td></tr>
-      </tbody></table>
-    <div class="conv-result mt-8">
-      <div class="conv-row"><span class="label">Original hydration</span><span class="value">${originalHyd}%</span></div>
-      <div class="conv-row"><span class="label">Converted hydration</span><span class="value">${newHyd}%</span></div>
-    </div>`;
-  document.getElementById('yeast-timing-note').textContent=timingNote;
-  window._lastConversion={flour,adjustedFlour,adjustedWater,starterAmt,starterPct,salt,newHyd,originalHyd};
+const flour=parseFloat(document.getElementById(‘yc-flour’).value)||500;
+const yeastType=document.getElementById(‘yc-type’).value;
+const yeastAmt=parseFloat(document.getElementById(‘yc-yeast’).value)||7;
+const water=parseFloat(document.getElementById(‘yc-water’).value)||375;
+const starterPct=parseFloat(document.getElementById(‘yc-starter-pct’).value)/100;
+const starterHyd=parseFloat(document.getElementById(‘yc-starter-hyd’).value)/100;
+const starterAmt=Math.round(flour*starterPct*10)/10;
+const starterFlour=Math.round(starterAmt/(1+starterHyd)*10)/10;
+const starterWater=Math.round(starterAmt-starterFlour);
+const adjustedWater=Math.round((water-starterWater)*10)/10;
+const adjustedFlour=Math.round((flour-starterFlour)*10)/10;
+const salt=Math.round(flour*.02*10)/10;
+const yeastPct=(yeastAmt/flour)*100;
+let timingNote=’’;
+if(yeastType===‘instant’) timingNote=`Original used ~${yeastPct.toFixed(2)}% IDY. Sourdough bulk will take 3.5–6 hrs at 80°F. Expect 2–4× longer overall process.`;
+else if(yeastType===‘active’) timingNote=`Active dry yeast converted. Expect 4–8 hrs bulk at 75–80°F. Monitor dough closely first bake.`;
+else timingNote=`Fresh yeast converted. Longer fermentation, superior flavor. Calibrate over first few bakes.`;
+const originalHyd=Math.round((water/flour)*100);
+const newHyd=Math.round(((adjustedWater+starterWater)/flour)*100);
+document.getElementById(‘yeast-conv-result’).style.display=‘block’;
+document.getElementById(‘yeast-conv-table’).innerHTML=` <table class="data-table"> <thead><tr><th>Ingredient</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Baker's %</th></tr></thead> <tbody> <tr><td>Bread Flour (base)</td><td class="val" style="text-align:right;">${adjustedFlour}g</td><td class="pct" style="text-align:right;">${Math.round(adjustedFlour/flour*100)}%</td></tr> <tr><td>Water (adjusted)</td><td class="val" style="text-align:right;">${adjustedWater}g</td><td class="pct" style="text-align:right;">${Math.round(adjustedWater/flour*100)}%</td></tr> <tr><td>Alphonse (${Math.round(starterPct*100)}%)</td><td class="val" style="text-align:right;">${starterAmt}g</td><td class="pct" style="text-align:right;">${Math.round(starterPct*100)}%</td></tr> <tr><td>Salt</td><td class="val" style="text-align:right;">${salt}g</td><td class="pct" style="text-align:right;">2%</td></tr> </tbody></table> <div class="conv-result mt-8"> <div class="conv-row"><span class="label">Original hydration</span><span class="value">${originalHyd}%</span></div> <div class="conv-row"><span class="label">Converted hydration</span><span class="value">${newHyd}%</span></div> </div>`;
+document.getElementById(‘yeast-timing-note’).textContent=timingNote;
+window._lastConversion={flour,adjustedFlour,adjustedWater,starterAmt,starterPct,salt,newHyd,originalHyd};
 }
 
 function saveConvertedRecipe() {
-  if(!window._lastConversion) return;
-  const c=window._lastConversion;
-  // Use inline input instead of prompt
-  showInlineInput('Name this recipe:', 'Converted Sourdough Recipe', (name)=>{
-    if(!name) return;
-    state.recipes.push({
-      id:'r_'+Date.now(),name,category:'sourdough',status:'testing',
-      notes:`Converted from commercial yeast. Original hydration: ${c.originalHyd}%.`,
-      ingredients:[
-        {name:'Bread Flour',pct:Math.round(c.adjustedFlour/c.flour*100),type:'flour'},
-        {name:'Water',pct:Math.round(c.adjustedWater/c.flour*100),type:'water'},
-        {name:'Alphonse (Levain)',pct:Math.round(c.starterPct*100),type:'starter'},
-        {name:'Salt',pct:2,type:'salt'}
-      ],
-      stages: JSON.parse(JSON.stringify(DEFAULT_STAGES))
-    });
-    saveState(); showToast('Saved to Recipes!','success');
-  });
+if(!window._lastConversion) return;
+const c=window.*lastConversion;
+// Use inline input instead of prompt
+showInlineInput(‘Name this recipe:’, ‘Converted Sourdough Recipe’, (name)=>{
+if(!name) return;
+state.recipes.push({
+id:’r*’+Date.now(),name,category:‘sourdough’,status:‘testing’,
+notes:`Converted from commercial yeast. Original hydration: ${c.originalHyd}%.`,
+ingredients:[
+{name:‘Bread Flour’,pct:Math.round(c.adjustedFlour/c.flour*100),type:‘flour’},
+{name:‘Water’,pct:Math.round(c.adjustedWater/c.flour*100),type:‘water’},
+{name:‘Alphonse (Levain)’,pct:Math.round(c.starterPct*100),type:‘starter’},
+{name:‘Salt’,pct:2,type:‘salt’}
+],
+stages: JSON.parse(JSON.stringify(DEFAULT_STAGES))
+});
+saveState(); showToast(‘Saved to Recipes!’,‘success’);
+});
 }
 
 // ═══════════════════════════════════════════════════
 // BULK-O-MATIC
 // ═══════════════════════════════════════════════════
 function populateBomSelect() {
-  const sel=document.getElementById('bom-recipe-select');
-  sel.innerHTML='<option value="">— select —</option>'+state.recipes.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
+const sel=document.getElementById(‘bom-recipe-select’);
+sel.innerHTML=’<option value="">— select —</option>’+state.recipes.map(r=>`<option value="${r.id}">${r.name}</option>`).join(’’);
 }
 
 function updateBomGuidance() {
-  const temp=parseInt(document.getElementById('bom-temp').value);
-  const g=BOM_GUIDANCE[temp];
-  if(!g) return;
-  document.getElementById('bom-rise-range').textContent=`${g.riseLow}% / ${g.riseMid}% / ${g.riseHigh}%`;
-  document.getElementById('bom-time').textContent=g.timeRange;
-  calcBomRise();
+const temp=parseInt(document.getElementById(‘bom-temp’).value);
+const g=BOM_GUIDANCE[temp];
+if(!g) return;
+document.getElementById(‘bom-rise-range’).textContent=`${g.riseLow}% / ${g.riseMid}% / ${g.riseHigh}%`;
+document.getElementById(‘bom-time’).textContent=g.timeRange;
+calcBomRise();
 }
 
 function calcBomRise() {
-  const start=parseFloat(document.getElementById('bom-start-vol').value)||750;
-  const cur=parseFloat(document.getElementById('bom-current-vol').value)||750;
-  const rise=Math.max(0,Math.round(((cur-start)/start)*100));
-  document.getElementById('bom-rise-pct').innerHTML=`${rise}<span class="stat-unit">%</span>`;
-  const temp=parseInt(document.getElementById('bom-temp').value);
-  const g=BOM_GUIDANCE[temp];
-  const status=document.getElementById('bom-rise-status');
-  if(rise<g.riseLow){status.textContent='Under';status.className='badge badge-red';}
-  else if(rise<=g.riseHigh){status.textContent='In Range';status.className='badge badge-green';}
-  else{status.textContent='Over';status.className='badge badge-amber';}
+const start=parseFloat(document.getElementById(‘bom-start-vol’).value)||750;
+const cur=parseFloat(document.getElementById(‘bom-current-vol’).value)||750;
+const rise=Math.max(0,Math.round(((cur-start)/start)*100));
+document.getElementById(‘bom-rise-pct’).innerHTML=`${rise}<span class="stat-unit">%</span>`;
+const temp=parseInt(document.getElementById(‘bom-temp’).value);
+const g=BOM_GUIDANCE[temp];
+const status=document.getElementById(‘bom-rise-status’);
+if(rise<g.riseLow){status.textContent=‘Under’;status.className=‘badge badge-red’;}
+else if(rise<=g.riseHigh){status.textContent=‘In Range’;status.className=‘badge badge-green’;}
+else{status.textContent=‘Over’;status.className=‘badge badge-amber’;}
 }
 
 function renderBomCriteria() {
-  document.getElementById('bom-criteria').innerHTML=BOM_CRITERIA.map(c=>`
-    <div class="bom-criterion">
-      <div class="bom-label">${c.label}</div>
-      <div style="margin-bottom:4px;"><div class="bom-range-label bom-range-under">↙ Under</div>
-      <div class="bom-scale">${c.under.map(o=>`<button class="bom-option" onclick="selectBom('${c.id}','under','${o}',this)">${o}</button>`).join('')}</div></div>
-      <div style="margin-bottom:4px;"><div class="bom-range-label bom-range-desired">✓ Desired</div>
-      <div class="bom-scale">${c.desired.map(o=>`<button class="bom-option" onclick="selectBom('${c.id}','desired','${o}',this)">${o}</button>`).join('')}</div></div>
-      <div><div class="bom-range-label bom-range-over">↗ Over</div>
-      <div class="bom-scale">${c.over.map(o=>`<button class="bom-option" onclick="selectBom('${c.id}','over','${o}',this)">${o}</button>`).join('')}</div></div>
-    </div>`).join('');
+document.getElementById(‘bom-criteria’).innerHTML=BOM_CRITERIA.map(c=>` <div class="bom-criterion"> <div class="bom-label">${c.label}</div> <div style="margin-bottom:4px;"><div class="bom-range-label bom-range-under">↙ Under</div> <div class="bom-scale">${c.under.map(o=>`<button class="bom-option" onclick="selectBom('${c.id}','under','${o}',this)">${o}</button>`).join('')}</div></div> <div style="margin-bottom:4px;"><div class="bom-range-label bom-range-desired">✓ Desired</div> <div class="bom-scale">${c.desired.map(o=>`<button class="bom-option" onclick="selectBom('${c.id}','desired','${o}',this)">${o}</button>`).join('')}</div></div> <div><div class="bom-range-label bom-range-over">↗ Over</div> <div class="bom-scale">${c.over.map(o=>`<button class="bom-option" onclick="selectBom('${c.id}','over','${o}',this)">${o}</button>`).join('')}</div></div> </div>`).join(’’);
 }
 
 function selectBom(cId, range, val, el) {
-  const crit=el.closest('.bom-criterion');
-  crit.querySelectorAll('.bom-option').forEach(b=>b.classList.remove('selected-under','selected-desired','selected-over'));
-  bomSelections[cId]={range,val};
-  el.classList.add('selected-'+range);
-  updateBomSummary();
+const crit=el.closest(’.bom-criterion’);
+crit.querySelectorAll(’.bom-option’).forEach(b=>b.classList.remove(‘selected-under’,‘selected-desired’,‘selected-over’));
+bomSelections[cId]={range,val};
+el.classList.add(‘selected-’+range);
+updateBomSummary();
 }
 
 function updateBomSummary() {
-  const vals=Object.values(bomSelections);
-  const under=vals.filter(v=>v.range==='under').length;
-  const desired=vals.filter(v=>v.range==='desired').length;
-  const over=vals.filter(v=>v.range==='over').length;
-  document.getElementById('bom-under-count').textContent=under;
-  document.getElementById('bom-desired-count').textContent=desired;
-  document.getElementById('bom-over-count').textContent=over;
-  const v=document.getElementById('bom-verdict');
-  if(vals.length<3){v.textContent='Assessing';v.className='badge badge-amber';}
-  else if(desired>=vals.length*.6){v.textContent='Cut Now';v.className='badge badge-green';}
-  else if(over>under){v.textContent='Over — Cut!';v.className='badge badge-red';}
-  else{v.textContent='Wait';v.className='badge badge-blue';}
+const vals=Object.values(bomSelections);
+const under=vals.filter(v=>v.range===‘under’).length;
+const desired=vals.filter(v=>v.range===‘desired’).length;
+const over=vals.filter(v=>v.range===‘over’).length;
+document.getElementById(‘bom-under-count’).textContent=under;
+document.getElementById(‘bom-desired-count’).textContent=desired;
+document.getElementById(‘bom-over-count’).textContent=over;
+const v=document.getElementById(‘bom-verdict’);
+if(vals.length<3){v.textContent=‘Assessing’;v.className=‘badge badge-amber’;}
+else if(desired>=vals.length*.6){v.textContent=‘Cut Now’;v.className=‘badge badge-green’;}
+else if(over>under){v.textContent=‘Over — Cut!’;v.className=‘badge badge-red’;}
+else{v.textContent=‘Wait’;v.className=‘badge badge-blue’;}
 }
 
 function saveBomSession() {
-  const recipeId=document.getElementById('bom-recipe-select').value;
-  const recipe=state.recipes.find(r=>r.id===recipeId);
-  const temp=document.getElementById('bom-temp').value;
-  const start=document.getElementById('bom-start-vol').value;
-  const cur=document.getElementById('bom-current-vol').value;
-  const rise=Math.max(0,Math.round(((parseFloat(cur)-parseFloat(start))/parseFloat(start))*100));
-  state.bakeLogs.unshift({
-    id:'log_'+Date.now(),
-    date:new Date().toLocaleDateString(),time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
-    recipeId,recipeName:recipe?recipe.name:'Unknown',
-    loaves:1,temp:temp+'°F',duration:'—',
-    checkpoints:[],
-    review:null,
-    rise:rise+'%',
-    notes:document.getElementById('bom-notes').value,
-    verdict:document.getElementById('bom-verdict').textContent
-  });
-  saveState();
-  showToast('Saved to Bake Log!','success');
-  saveLogToCloud(state.bakeLogs[0]);
+const recipeId=document.getElementById(‘bom-recipe-select’).value;
+const recipe=state.recipes.find(r=>r.id===recipeId);
+const temp=document.getElementById(‘bom-temp’).value;
+const start=document.getElementById(‘bom-start-vol’).value;
+const cur=document.getElementById(‘bom-current-vol’).value;
+const rise=Math.max(0,Math.round(((parseFloat(cur)-parseFloat(start))/parseFloat(start))*100));
+state.bakeLogs.unshift({
+id:‘log_’+Date.now(),
+date:new Date().toLocaleDateString(),time:new Date().toLocaleTimeString([],{hour:‘2-digit’,minute:‘2-digit’}),
+recipeId,recipeName:recipe?recipe.name:‘Unknown’,
+loaves:1,temp:temp+‘°F’,duration:’—’,
+checkpoints:[],
+review:null,
+rise:rise+’%’,
+notes:document.getElementById(‘bom-notes’).value,
+verdict:document.getElementById(‘bom-verdict’).textContent
+});
+saveState();
+showToast(‘Saved to Bake Log!’,‘success’);
+saveLogToCloud(state.bakeLogs[0]);
 }
 
 function resetBom() {
-  bomSelections={};
-  renderBomCriteria();
-  updateBomSummary();
-  document.getElementById('bom-notes').value='';
-  document.getElementById('bom-start-vol').value='750';
-  document.getElementById('bom-current-vol').value='750';
-  calcBomRise();
+bomSelections={};
+renderBomCriteria();
+updateBomSummary();
+document.getElementById(‘bom-notes’).value=’’;
+document.getElementById(‘bom-start-vol’).value=‘750’;
+document.getElementById(‘bom-current-vol’).value=‘750’;
+calcBomRise();
 }
 
 // ═══════════════════════════════════════════════════
 // BAKE LOG
 // ═══════════════════════════════════════════════════
 function renderLog() {
-  const c=document.getElementById('log-list');
-  const empty=document.getElementById('log-empty');
-  if(!state.bakeLogs.length){c.innerHTML='';empty.style.display='block';return;}
-  empty.style.display='none';
-  c.innerHTML=state.bakeLogs.map(entry=>{
-    const r=entry.review;
-    const stars=r&&r.score?'⭐'.repeat(r.score):'';
-    const checkpointCount=(entry.checkpoints||[]).length;
-    const verdictClass=entry.verdict==='Nicely proofed'||entry.verdict==='Cut Now'?'badge-green':entry.verdict==='Over-proofed'||entry.verdict==='Over — Cut!'?'badge-red':'badge-amber';
-    return `<div class="log-item" onclick="openLogDetail('${entry.id}')" style="cursor:pointer;">
-      <div class="log-header">
-        <div>
-          <div class="log-recipe">${entry.recipeName}</div>
-          <div class="log-date">${entry.date} · ${entry.time}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
-          <span class="badge ${verdictClass}">${entry.verdict}</span>
-          ${stars?`<span style="font-size:12px;">${stars}</span>`:''}
-          <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">tap to open →</span>
-        </div>
-      </div>
-      <div class="log-stats">
-        <div>Temp <span>${entry.temp||'—'}</span></div>
-        ${entry.rise?`<div>Rise <span>${entry.rise}</span></div>`:''}
-        <div>Loaves <span>${entry.loaves||1}</span></div>
-        ${entry.duration&&entry.duration!=='—'?`<div>Time <span>${entry.duration}</span></div>`:''}
-        ${checkpointCount?`<div>Checkpoints <span>${checkpointCount}</span></div>`:''}
-      </div>
-    </div>`;
-  }).join('');
+const c=document.getElementById(‘log-list’);
+const empty=document.getElementById(‘log-empty’);
+if(!state.bakeLogs.length){c.innerHTML=’’;empty.style.display=‘block’;return;}
+empty.style.display=‘none’;
+c.innerHTML=state.bakeLogs.map(entry=>{
+const r=entry.review;
+const stars=r&&r.score?‘⭐’.repeat(r.score):’’;
+const checkpointCount=(entry.checkpoints||[]).length;
+const verdictClass=entry.verdict===‘Nicely proofed’||entry.verdict===‘Cut Now’?‘badge-green’:entry.verdict===‘Over-proofed’||entry.verdict===‘Over — Cut!’?‘badge-red’:‘badge-amber’;
+return `<div class="log-item" onclick="openLogDetail('${entry.id}')" style="cursor:pointer;"> <div class="log-header"> <div> <div class="log-recipe">${entry.recipeName}</div> <div class="log-date">${entry.date} · ${entry.time}</div> </div> <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;"> <span class="badge ${verdictClass}">${entry.verdict}</span> ${stars?`<span style="font-size:12px;">${stars}</span>`:''} <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">tap to open →</span> </div> </div> <div class="log-stats"> <div>Temp <span>${entry.temp||'—'}</span></div> ${entry.rise?`<div>Rise <span>${entry.rise}</span></div>`:''} <div>Loaves <span>${entry.loaves||1}</span></div> ${entry.duration&&entry.duration!=='—'?`<div>Time <span>${entry.duration}</span></div>`:''} ${checkpointCount?`<div>Checkpoints <span>${checkpointCount}</span></div>`:''} </div> </div>`;
+}).join(’’);
 }
 
 function openLogDetail(id) {
-  const entry = state.bakeLogs.find(e=>e.id===id);
-  if(!entry) return;
-  const r = entry.review;
-  const stars = r&&r.score?'⭐'.repeat(r.score):'No score';
-  const checkpoints = entry.checkpoints||[];
-  const verdictClass=entry.verdict==='Nicely proofed'||entry.verdict==='Cut Now'?'badge-green':entry.verdict==='Over-proofed'||entry.verdict==='Over — Cut!'?'badge-red':'badge-amber';
+const entry = state.bakeLogs.find(e=>e.id===id);
+if(!entry) return;
+const r = entry.review;
+const stars = r&&r.score?‘⭐’.repeat(r.score):‘No score’;
+const checkpoints = entry.checkpoints||[];
+const verdictClass=entry.verdict===‘Nicely proofed’||entry.verdict===‘Cut Now’?‘badge-green’:entry.verdict===‘Over-proofed’||entry.verdict===‘Over — Cut!’?‘badge-red’:‘badge-amber’;
 
-  const m = document.createElement('div');
-  m.id = 'breadlab-modal';
-  m.style.cssText=`position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9998;overflow-y:auto;padding:16px;`;
+const m = document.createElement(‘div’);
+m.id = ‘breadlab-modal’;
+m.style.cssText=`position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9998;overflow-y:auto;padding:16px;`;
 
-  const checkpointHTML = checkpoints.length ? checkpoints.map(cp=>`
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:8px;">
-      <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);margin-bottom:4px;">${cp.stageName} · ${cp.time}</div>
-      ${cp.rise?`<div style="font-family:var(--mono);font-size:11px;color:var(--text2);">Rise: <span style="color:var(--accent);">${cp.rise}</span></div>`:''}
-      ${cp.notes?`<div style="font-family:var(--sans);font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;">${cp.notes}</div>`:''}
-      ${cp.photo?`<img src="${cp.photo}" style="width:100%;border-radius:4px;margin-top:8px;max-height:180px;object-fit:cover;">`:''}
-      ${Object.keys(cp.bomSelections||{}).length?`
-        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
-          ${Object.entries(cp.bomSelections).map(([k,v])=>`
-            <span style="font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:2px;
-              background:${v.range==='desired'?'var(--green-dim)':v.range==='under'?'var(--red-dim)':'var(--accent-dim)'};
-              color:${v.range==='desired'?'var(--green)':v.range==='under'?'var(--red)':'var(--accent)'};">
-              ${k.replace('_',' ')}: ${v.val}
-            </span>`).join('')}
-        </div>`:''}
-    </div>`).join('') : '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);">No checkpoints recorded</div>';
+const checkpointHTML = checkpoints.length ? checkpoints.map(cp=>` <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:8px;"> <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);margin-bottom:4px;">${cp.stageName} · ${cp.time}</div> ${cp.rise?`<div style="font-family:var(--mono);font-size:11px;color:var(--text2);">Rise: <span style="color:var(--accent);">${cp.rise}</span></div>`:''} ${cp.notes?`<div style="font-family:var(--sans);font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;">${cp.notes}</div>`:''} ${cp.photo?`<img src="${cp.photo}" style="width:100%;border-radius:4px;margin-top:8px;max-height:180px;object-fit:cover;">`:''} ${Object.keys(cp.bomSelections||{}).length?`
+<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
+${Object.entries(cp.bomSelections).map(([k,v])=>` <span style="font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:2px; background:${v.range==='desired'?'var(--green-dim)':v.range==='under'?'var(--red-dim)':'var(--accent-dim)'}; color:${v.range==='desired'?'var(--green)':v.range==='under'?'var(--red)':'var(--accent)'};"> ${k.replace('_',' ')}: ${v.val} </span>`).join(’’)}
+</div>`:''} </div>`).join(’’) : ‘<div style="font-family:var(--mono);font-size:11px;color:var(--text3);">No checkpoints recorded</div>’;
 
-  const reviewHTML = r ? `
-    <div style="margin-bottom:8px;"><span style="font-family:var(--mono);font-size:11px;color:var(--text2);">Score: </span><span style="font-size:14px;">${stars}</span></div>
-    ${r.proofing?`<div class="conv-row"><span class="label">Proofing</span><span class="value">${r.proofing}</span></div>`:''}
-    ${r.crumb?`<div class="conv-row"><span class="label">Crumb</span><span class="value">${r.crumb}</span></div>`:''}
-    ${r.crust?`<div class="conv-row"><span class="label">Crust</span><span class="value">${r.crust}</span></div>`:''}
-    ${r.flavor?`<div class="conv-row"><span class="label">Flavor</span><span class="value">${r.flavor}</span></div>`:''}
-    ${r.spring?`<div class="conv-row"><span class="label">Oven Spring</span><span class="value">${r.spring}</span></div>`:''}
-    ${r.tasting?`<div style="margin-top:8px;font-family:var(--sans);font-size:12px;color:var(--text2);line-height:1.6;"><span style="font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em;">Tasting Notes</span>${r.tasting}</div>`:''}
-    ${r.adjustments?`<div style="margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--blue);padding:8px;background:var(--blue-dim);border:1px solid var(--blue);border-radius:4px;">→ Next bake: ${r.adjustments}</div>`:''}
-  ` : '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);">No review recorded</div>';
+const reviewHTML = r ? ` <div style="margin-bottom:8px;"><span style="font-family:var(--mono);font-size:11px;color:var(--text2);">Score: </span><span style="font-size:14px;">${stars}</span></div> ${r.proofing?`<div class="conv-row"><span class="label">Proofing</span><span class="value">${r.proofing}</span></div>`:''} ${r.crumb?`<div class="conv-row"><span class="label">Crumb</span><span class="value">${r.crumb}</span></div>`:''} ${r.crust?`<div class="conv-row"><span class="label">Crust</span><span class="value">${r.crust}</span></div>`:''} ${r.flavor?`<div class="conv-row"><span class="label">Flavor</span><span class="value">${r.flavor}</span></div>`:''} ${r.spring?`<div class="conv-row"><span class="label">Oven Spring</span><span class="value">${r.spring}</span></div>`:''} ${r.tasting?`<div style="margin-top:8px;font-family:var(--sans);font-size:12px;color:var(--text2);line-height:1.6;"><span style="font-family:var(--mono);font-size:10px;color:var(--text3);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em;">Tasting Notes</span>${r.tasting}</div>`:''} ${r.adjustments?`<div style="margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--blue);padding:8px;background:var(--blue-dim);border:1px solid var(--blue);border-radius:4px;">→ Next bake: ${r.adjustments}</div>`:''} ` : ‘<div style="font-family:var(--mono);font-size:11px;color:var(--text3);">No review recorded</div>’;
 
-  m.innerHTML=`
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;max-width:560px;margin:0 auto;">
-      <div style="background:var(--surface2);border-bottom:1px solid var(--border);padding:14px;display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div style="font-family:var(--mono);font-weight:700;font-size:15px;color:var(--text);margin-bottom:3px;">${entry.recipeName}</div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">${entry.date} · ${entry.time}</div>
-        </div>
-        <button onclick="document.getElementById('breadlab-modal').remove()" style="background:var(--surface3);border:1px solid var(--border2);border-radius:4px;color:var(--text2);font-family:var(--mono);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">✕ Close</button>
+m.innerHTML=`
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;max-width:560px;margin:0 auto;">
+<div style="background:var(--surface2);border-bottom:1px solid var(--border);padding:14px;display:flex;justify-content:space-between;align-items:flex-start;">
+<div>
+<div style="font-family:var(--mono);font-weight:700;font-size:15px;color:var(--text);margin-bottom:3px;">${entry.recipeName}</div>
+<div style="font-family:var(--mono);font-size:10px;color:var(--text3);">${entry.date} · ${entry.time}</div>
+</div>
+<button onclick="document.getElementById('breadlab-modal').remove()" style="background:var(--surface3);border:1px solid var(--border2);border-radius:4px;color:var(--text2);font-family:var(--mono);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">✕ Close</button>
+</div>
+<div style="padding:14px;">
+
+```
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;">
+        <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:4px;">Verdict</div>
+        <span class="badge ${verdictClass}">${entry.verdict}</span>
       </div>
-      <div style="padding:14px;">
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;">
-            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:4px;">Verdict</div>
-            <span class="badge ${verdictClass}">${entry.verdict}</span>
-          </div>
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;">
-            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:4px;">Loaves</div>
-            <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent);">${entry.loaves||1}</div>
-          </div>
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;">
-            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:4px;">Dough Temp</div>
-            <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent);">${entry.temp||'—'}</div>
-          </div>
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;">
-            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:4px;">${entry.rise?'Peak Rise':'Duration'}</div>
-            <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent);">${entry.rise||entry.duration||'—'}</div>
-          </div>
-        </div>
-
-        <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">
-          Bulk-O Checkpoints (${checkpoints.length})
-        </div>
-        <div style="margin-bottom:14px;">${checkpointHTML}</div>
-
-        <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">
-          Bake Review
-        </div>
-        <div class="conv-result" style="margin-bottom:14px;">${reviewHTML}</div>
-
-        <div style="display:flex;gap:8px;">
-          <button onclick="document.getElementById('breadlab-modal').remove()" style="flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Close</button>
-          <button onclick="deleteLogEntry('${entry.id}')" style="flex:1;padding:9px;background:var(--red-dim);border:1px solid var(--red);border-radius:4px;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Delete Log</button>
-        </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;">
+        <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:4px;">Loaves</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent);">${entry.loaves||1}</div>
       </div>
-    </div>`;
-  document.body.appendChild(m);
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;">
+        <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:4px;">Dough Temp</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent);">${entry.temp||'—'}</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;">
+        <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:4px;">${entry.rise?'Peak Rise':'Duration'}</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent);">${entry.rise||entry.duration||'—'}</div>
+      </div>
+    </div>
+
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">
+      Stage Timeline — Planned vs Actual
+    </div>
+    <div style="margin-bottom:14px;">
+      ${(entry.stages||[]).length ? `
+      <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;">
+        <thead><tr>
+          <th style="text-align:left;padding:4px 6px;color:var(--text3);font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--border);">Stage</th>
+          <th style="text-align:right;padding:4px 6px;color:var(--text3);font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--border);">Planned</th>
+          <th style="text-align:right;padding:4px 6px;color:var(--text3);font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--border);">Actual</th>
+          <th style="text-align:right;padding:4px 6px;color:var(--text3);font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--border);">Δ</th>
+        </tr></thead>
+        <tbody>${(entry.stages||[]).map(s => {
+          const planned = s.plannedMins || s.mins || 0;
+          const actual = s.actualMins || null;
+          const delta = actual !== null ? actual - planned : null;
+          const deltaColor = delta === null ? 'var(--text3)' : delta > 5 ? 'var(--red)' : delta < -5 ? 'var(--green)' : 'var(--text2)';
+          return `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 6px;color:${s.edited?'var(--blue)':'var(--text)'};">${s.name}${s.edited?' ✎':''}</td>
+            <td style="padding:5px 6px;text-align:right;color:var(--text2);">${fmtMins(planned)}</td>
+            <td style="padding:5px 6px;text-align:right;color:var(--accent);">${actual !== null ? fmtMins(actual) : '—'}</td>
+            <td style="padding:5px 6px;text-align:right;color:${deltaColor};">${delta !== null ? (delta > 0 ? '+' : '') + delta + 'm' : '—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>` : '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);">No stage data — recorded from Bulk-O only</div>'}
+    </div>
+
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">
+      Bulk-O Checkpoints (${checkpoints.length})
+    </div>
+    <div style="margin-bottom:14px;">${checkpointHTML}</div>
+
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">
+      Bake Review
+    </div>
+    <div class="conv-result" style="margin-bottom:14px;">${reviewHTML}</div>
+
+    <div style="display:flex;gap:8px;">
+      <button onclick="document.getElementById('breadlab-modal').remove()" style="flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Close</button>
+      <button onclick="deleteLogEntry('${entry.id}')" style="flex:1;padding:9px;background:var(--red-dim);border:1px solid var(--red);border-radius:4px;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Delete Log</button>
+    </div>
+  </div>
+</div>`;
+```
+
+document.body.appendChild(m);
 }
 
 function deleteLogEntry(id) {
-  document.getElementById('breadlab-modal').remove();
-  showInlineConfirm('Delete this bake log?','This cannot be undone.','Delete',()=>{
-    state.bakeLogs = state.bakeLogs.filter(e=>e.id!==id);
-    saveState(); renderLog(); showToast('Log deleted.','warn');
-    deleteLogFromCloud(id);
-  });
+document.getElementById(‘breadlab-modal’).remove();
+showInlineConfirm(‘Delete this bake log?’,‘This cannot be undone.’,‘Delete’,()=>{
+state.bakeLogs = state.bakeLogs.filter(e=>e.id!==id);
+saveState(); renderLog(); showToast(‘Log deleted.’,‘warn’);
+deleteLogFromCloud(id);
+});
 }
 
 // ═══════════════════════════════════════════════════
 // UI HELPERS — no alert/confirm/prompt (blocked in Safari artifacts)
 // ═══════════════════════════════════════════════════
-function showToast(msg, type='info') {
-  const existing = document.getElementById('breadlab-toast');
-  if(existing) existing.remove();
-  const colors = { success:'var(--green)', warn:'var(--accent)', info:'var(--blue)', danger:'var(--red)' };
-  const bgColors = { success:'var(--green-dim)', warn:'var(--accent-dim)', info:'var(--blue-dim)', danger:'var(--red-dim)' };
-  const t = document.createElement('div');
-  t.id = 'breadlab-toast';
-  t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-    background:${bgColors[type]};border:1px solid ${colors[type]};color:${colors[type]};
-    font-family:var(--mono);font-size:12px;font-weight:600;padding:10px 20px;
-    border-radius:4px;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);
-    animation:fadeInUp .2s ease;`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2500);
+function showToast(msg, type=‘info’) {
+const existing = document.getElementById(‘breadlab-toast’);
+if(existing) existing.remove();
+const colors = { success:‘var(–green)’, warn:‘var(–accent)’, info:‘var(–blue)’, danger:‘var(–red)’ };
+const bgColors = { success:‘var(–green-dim)’, warn:‘var(–accent-dim)’, info:‘var(–blue-dim)’, danger:‘var(–red-dim)’ };
+const t = document.createElement(‘div’);
+t.id = ‘breadlab-toast’;
+t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%); background:${bgColors[type]};border:1px solid ${colors[type]};color:${colors[type]}; font-family:var(--mono);font-size:12px;font-weight:600;padding:10px 20px; border-radius:4px;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4); animation:fadeInUp .2s ease;`;
+t.textContent = msg;
+document.body.appendChild(t);
+setTimeout(()=>{ t.style.opacity=‘0’; t.style.transition=‘opacity .3s’; setTimeout(()=>t.remove(),300); }, 2500);
 }
 
 function showInlineConfirm(title, subtitle, confirmLabel, onConfirm) {
-  const existing = document.getElementById('breadlab-modal');
-  if(existing) existing.remove();
-  const m = document.createElement('div');
-  m.id = 'breadlab-modal';
-  m.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9998;
-    display:flex;align-items:center;justify-content:center;padding:20px;`;
-  m.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px;max-width:320px;width:100%;">
-    <div style="font-family:var(--mono);font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px;">${title}</div>
-    <div style="font-family:var(--sans);font-size:12px;color:var(--text2);margin-bottom:16px;">${subtitle}</div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="document.getElementById('breadlab-modal').remove()" style="flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
-      <button id="modal-confirm-btn" style="flex:1;padding:9px;background:var(--red-dim);border:1px solid var(--red);border-radius:4px;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">${confirmLabel}</button>
-    </div>
+const existing = document.getElementById(‘breadlab-modal’);
+if(existing) existing.remove();
+const m = document.createElement(‘div’);
+m.id = ‘breadlab-modal’;
+m.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9998; display:flex;align-items:center;justify-content:center;padding:20px;`;
+m.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px;max-width:320px;width:100%;">
+<div style="font-family:var(--mono);font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px;">${title}</div>
+<div style="font-family:var(--sans);font-size:12px;color:var(--text2);margin-bottom:16px;">${subtitle}</div>
+<div style="display:flex;gap:8px;">
+<button onclick="document.getElementById('breadlab-modal').remove()" style="flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
+<button id="modal-confirm-btn" style="flex:1;padding:9px;background:var(--red-dim);border:1px solid var(--red);border-radius:4px;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">${confirmLabel}</button>
+</div>
+
   </div>`;
   document.body.appendChild(m);
   document.getElementById('modal-confirm-btn').onclick = () => { m.remove(); onConfirm(); };
 }
 
 function showInlineInput(title, defaultVal, onConfirm) {
-  const existing = document.getElementById('breadlab-modal');
-  if(existing) existing.remove();
-  const m = document.createElement('div');
-  m.id = 'breadlab-modal';
-  m.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9998;
-    display:flex;align-items:center;justify-content:center;padding:20px;`;
-  m.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px;max-width:320px;width:100%;">
-    <div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">${title}</div>
-    <input type="text" id="modal-input-val" value="${defaultVal}" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;outline:none;margin-bottom:12px;">
-    <div style="display:flex;gap:8px;">
-      <button onclick="document.getElementById('breadlab-modal').remove()" style="flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
-      <button id="modal-input-btn" style="flex:1;padding:9px;background:var(--accent);border:none;border-radius:4px;color:var(--bg);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Save</button>
-    </div>
+const existing = document.getElementById(‘breadlab-modal’);
+if(existing) existing.remove();
+const m = document.createElement(‘div’);
+m.id = ‘breadlab-modal’;
+m.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9998; display:flex;align-items:center;justify-content:center;padding:20px;`;
+m.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px;max-width:320px;width:100%;">
+<div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">${title}</div>
+<input type="text" id="modal-input-val" value="${defaultVal}" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;outline:none;margin-bottom:12px;">
+<div style="display:flex;gap:8px;">
+<button onclick="document.getElementById('breadlab-modal').remove()" style="flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
+<button id="modal-input-btn" style="flex:1;padding:9px;background:var(--accent);border:none;border-radius:4px;color:var(--bg);font-family:var(--mono);font-size:12px;font-weight:600;cursor:pointer;">Save</button>
+</div>
+
   </div>`;
   document.body.appendChild(m);
   const inp = document.getElementById('modal-input-val');
@@ -2201,7 +2364,7 @@ function showInlineInput(title, defaultVal, onConfirm) {
 }
 
 // CSS for toast animation
-const style = document.createElement('style');
+const style = document.createElement(‘style’);
 style.textContent = `@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`;
 document.head.appendChild(style);
 
@@ -2209,289 +2372,284 @@ document.head.appendChild(style);
 // INCLUSIONS
 // ═══════════════════════════════════════════════════
 function addInclusion() {
-  const name = document.getElementById('new-inc-name').value.trim();
-  const pct = parseFloat(document.getElementById('new-inc-pct').value);
-  const absSel = document.getElementById('new-inc-absorption').value;
-  const absorption = absSel === 'custom'
-    ? (parseFloat(document.getElementById('new-inc-custom-abs').value) || 0)
-    : parseFloat(absSel);
-  const soaked = document.getElementById('new-inc-soaked').checked;
-  const timing = document.getElementById('new-inc-timing').value;
+const name = document.getElementById(‘new-inc-name’).value.trim();
+const pct = parseFloat(document.getElementById(‘new-inc-pct’).value);
+const absSel = document.getElementById(‘new-inc-absorption’).value;
+const absorption = absSel === ‘custom’
+? (parseFloat(document.getElementById(‘new-inc-custom-abs’).value) || 0)
+: parseFloat(absSel);
+const soaked = document.getElementById(‘new-inc-soaked’).checked;
+const timing = document.getElementById(‘new-inc-timing’).value;
 
-  if(!name || isNaN(pct) || pct <= 0) { showToast('Enter name and amount.','warn'); return; }
+if(!name || isNaN(pct) || pct <= 0) { showToast(‘Enter name and amount.’,‘warn’); return; }
 
-  state.builderInclusions = state.builderInclusions || [];
-  state.builderInclusions.push({ name, pct, absorption: soaked ? 0 : absorption, soaked, timing });
+state.builderInclusions = state.builderInclusions || [];
+state.builderInclusions.push({ name, pct, absorption: soaked ? 0 : absorption, soaked, timing });
 
-  document.getElementById('new-inc-name').value = '';
-  document.getElementById('new-inc-pct').value = '';
-  renderBuilderInclusions();
+document.getElementById(‘new-inc-name’).value = ‘’;
+document.getElementById(‘new-inc-pct’).value = ‘’;
+renderBuilderInclusions();
 }
 
-document.getElementById('new-inc-absorption').addEventListener('change', function() {
-  document.getElementById('inc-custom-absorption').style.display = this.value === 'custom' ? 'block' : 'none';
+document.getElementById(‘new-inc-absorption’).addEventListener(‘change’, function() {
+document.getElementById(‘inc-custom-absorption’).style.display = this.value === ‘custom’ ? ‘block’ : ‘none’;
 });
 
 function removeInclusion(i) {
-  state.builderInclusions.splice(i, 1);
-  renderBuilderInclusions();
+state.builderInclusions.splice(i, 1);
+renderBuilderInclusions();
 }
 
 function renderBuilderInclusions() {
-  state.builderInclusions = state.builderInclusions || [];
-  const c = document.getElementById('inclusion-list-builder');
-  const impactCard = document.getElementById('inclusion-hydration-impact');
+state.builderInclusions = state.builderInclusions || [];
+const c = document.getElementById(‘inclusion-list-builder’);
+const impactCard = document.getElementById(‘inclusion-hydration-impact’);
 
-  if(!state.builderInclusions.length) {
-    c.innerHTML = '<div style="color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center;padding:12px;">No inclusions yet</div>';
-    impactCard.style.display = 'none';
-    return;
-  }
+if(!state.builderInclusions.length) {
+c.innerHTML = ‘<div style="color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center;padding:12px;">No inclusions yet</div>’;
+impactCard.style.display = ‘none’;
+return;
+}
 
-  c.innerHTML = `<table class="data-table">
-    <thead><tr><th>Inclusion</th><th>%</th><th>Absorb</th><th>When</th><th></th></tr></thead>
-    <tbody>${state.builderInclusions.map((inc,i) => `
-      <tr>
-        <td>${inc.name}${inc.soaked?' <span style="color:var(--blue);font-size:9px;">(soaked)</span>':''}</td>
-        <td class="val">${inc.pct}%</td>
-        <td style="color:${inc.absorption > 0 ? 'var(--red)' : inc.absorption < 0 ? 'var(--green)' : 'var(--text3)'};">
-          ${inc.absorption > 0 ? '+' : ''}${inc.absorption}%
-        </td>
-        <td style="color:var(--text3);font-size:10px;">${inc.timing}</td>
-        <td><button class="ing-remove" onclick="removeInclusion(${i})">×</button></td>
-      </tr>`).join('')}
-    </tbody></table>`;
+c.innerHTML = `<table class="data-table"> <thead><tr><th>Inclusion</th><th>%</th><th>Absorb</th><th>When</th><th></th></tr></thead> <tbody>${state.builderInclusions.map((inc,i) => `
+<tr>
+<td>${inc.name}${inc.soaked?’ <span style="color:var(--blue);font-size:9px;">(soaked)</span>’:’’}</td>
+<td class="val">${inc.pct}%</td>
+<td style="color:${inc.absorption > 0 ? 'var(--red)' : inc.absorption < 0 ? 'var(--green)' : 'var(--text3)'};">
+${inc.absorption > 0 ? ‘+’ : ‘’}${inc.absorption}%
+</td>
+<td style="color:var(--text3);font-size:10px;">${inc.timing}</td>
+<td><button class="ing-remove" onclick="removeInclusion(${i})">×</button></td>
+</tr>`).join('')} </tbody></table>`;
 
-  // Calculate hydration impact
-  const flourPct = state.builderIngredients.filter(i=>i.type==='flour').reduce((s,i)=>s+i.pct,0) || 100;
-  let totalAbsorption = 0;
-  state.builderInclusions.forEach(inc => {
-    // absorption is % of inclusion weight, inclusion is % of flour
-    const incGramsPerFlourG = inc.pct / 100;
-    const waterAbsorbedPerFlourG = incGramsPerFlourG * (inc.absorption / 100);
-    totalAbsorption += waterAbsorbedPerFlourG * 100; // back to % of flour
-  });
+// Calculate hydration impact
+const flourPct = state.builderIngredients.filter(i=>i.type===‘flour’).reduce((s,i)=>s+i.pct,0) || 100;
+let totalAbsorption = 0;
+state.builderInclusions.forEach(inc => {
+// absorption is % of inclusion weight, inclusion is % of flour
+const incGramsPerFlourG = inc.pct / 100;
+const waterAbsorbedPerFlourG = incGramsPerFlourG * (inc.absorption / 100);
+totalAbsorption += waterAbsorbedPerFlourG * 100; // back to % of flour
+});
 
-  const baseHyd = (() => {
-    const w = state.builderIngredients.filter(i=>i.type==='water').reduce((s,i)=>s+i.pct,0);
-    const sp = state.builderIngredients.filter(i=>i.type==='starter').reduce((s,i)=>s+i.pct,0);
-    return flourPct ? Math.round(((w + sp*0.5)/flourPct)*100) : 0;
-  })();
+const baseHyd = (() => {
+const w = state.builderIngredients.filter(i=>i.type===‘water’).reduce((s,i)=>s+i.pct,0);
+const sp = state.builderIngredients.filter(i=>i.type===‘starter’).reduce((s,i)=>s+i.pct,0);
+return flourPct ? Math.round(((w + sp*0.5)/flourPct)*100) : 0;
+})();
 
-  const adjustedHyd = baseHyd - Math.round(totalAbsorption);
+const adjustedHyd = baseHyd - Math.round(totalAbsorption);
 
-  impactCard.style.display = 'block';
-  document.getElementById('inclusion-impact-content').innerHTML = `
-    <div class="conv-row"><span class="label">Base effective hydration</span><span class="value">${baseHyd}%</span></div>
-    <div class="conv-row"><span class="label">Water absorbed by inclusions</span><span class="value" style="color:${totalAbsorption > 0 ? 'var(--red)' : totalAbsorption < 0 ? 'var(--green)' : 'var(--text2)'};">${totalAbsorption > 0 ? '-' : '+'}${Math.abs(Math.round(totalAbsorption))}%</span></div>
-    <div class="conv-row"><span class="label">Adjusted effective hydration</span><span class="value">${adjustedHyd}%</span></div>
-    ${Math.abs(totalAbsorption) > 3 ? `<div class="notice ${totalAbsorption > 0 ? 'danger' : 'success'} mt-8" style="margin-bottom:0;">
-      ${totalAbsorption > 0
-        ? `⚠ Your inclusions absorb significant water. Consider adding ${Math.round(totalAbsorption)}% extra water to compensate, or account for tighter dough.`
-        : `✓ Your inclusions release water. Your dough will be slightly wetter than the base formula suggests.`}
-    </div>` : ''}
-    ${state.builderInclusions.some(i=>i.timing==='fold') ? `<div class="notice mt-8" style="margin-bottom:0;">📏 Inclusions added during folds will change your starting volume. Add inclusion volume to your baseline measurement in the Bulk-O tracker.</div>` : ''}`;
+impactCard.style.display = ‘block’;
+document.getElementById(‘inclusion-impact-content’).innerHTML = `<div class="conv-row"><span class="label">Base effective hydration</span><span class="value">${baseHyd}%</span></div> <div class="conv-row"><span class="label">Water absorbed by inclusions</span><span class="value" style="color:${totalAbsorption > 0 ? 'var(--red)' : totalAbsorption < 0 ? 'var(--green)' : 'var(--text2)'};">${totalAbsorption > 0 ? '-' : '+'}${Math.abs(Math.round(totalAbsorption))}%</span></div> <div class="conv-row"><span class="label">Adjusted effective hydration</span><span class="value">${adjustedHyd}%</span></div> ${Math.abs(totalAbsorption) > 3 ?`<div class="notice ${totalAbsorption > 0 ? 'danger' : 'success'} mt-8" style="margin-bottom:0;">
+${totalAbsorption > 0
+? `⚠ Your inclusions absorb significant water. Consider adding ${Math.round(totalAbsorption)}% extra water to compensate, or account for tighter dough.`
+: `✓ Your inclusions release water. Your dough will be slightly wetter than the base formula suggests.`}
+</div>`: ''} ${state.builderInclusions.some(i=>i.timing==='fold') ?`<div class="notice mt-8" style="margin-bottom:0;">📏 Inclusions added during folds will change your starting volume. Add inclusion volume to your baseline measurement in the Bulk-O tracker.</div>` : ''}`;
 }
 
 // ═══════════════════════════════════════════════════
 // EXPORT / IMPORT
 // ═══════════════════════════════════════════════════
 function exportData() {
-  const data = {
-    exportedAt: new Date().toISOString(),
-    version: '2.1',
-    recipes: state.recipes,
-    bakeLogs: state.bakeLogs
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `breadlab-backup-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Backup exported!', 'success');
+const data = {
+exportedAt: new Date().toISOString(),
+version: ‘2.1’,
+recipes: state.recipes,
+bakeLogs: state.bakeLogs
+};
+const blob = new Blob([JSON.stringify(data, null, 2)], { type: ‘application/json’ });
+const url = URL.createObjectURL(blob);
+const a = document.createElement(‘a’);
+a.href = url;
+a.download = `breadlab-backup-${new Date().toISOString().slice(0,10)}.json`;
+a.click();
+URL.revokeObjectURL(url);
+showToast(‘Backup exported!’, ‘success’);
 }
 
 function importData() {
-  document.getElementById('import-file-input').click();
+document.getElementById(‘import-file-input’).click();
 }
 
 function handleImport(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if(!data.recipes) { showToast('Invalid backup file.', 'danger'); return; }
-      showInlineConfirm(
-        'Import backup?',
-        `This will merge ${data.recipes.length} recipes and ${(data.bakeLogs||[]).length} log entries with your current data.`,
-        'Import',
-        () => {
-          // Merge recipes — don't overwrite existing by ID
-          const existingIds = new Set(state.recipes.map(r=>r.id));
-          let added = 0;
-          data.recipes.forEach(r => {
-            if(!existingIds.has(r.id)) { state.recipes.push(r); added++; }
-          });
-          // Merge logs
-          const existingLogIds = new Set(state.bakeLogs.map(l=>l.id));
-          let logsAdded = 0;
-          (data.bakeLogs||[]).forEach(l => {
-            if(!existingLogIds.has(l.id)) { state.bakeLogs.unshift(l); logsAdded++; }
-          });
-          saveState();
-          renderRecipeList();
-          renderLog();
-          showToast(`Imported ${added} recipes, ${logsAdded} logs.`, 'success');
-        }
-      );
-    } catch(err) {
-      showToast('Could not read file.', 'danger');
-    }
-  };
-  reader.readAsText(file);
-  input.value = '';
+const file = input.files[0];
+if(!file) return;
+const reader = new FileReader();
+reader.onload = e => {
+try {
+const data = JSON.parse(e.target.result);
+if(!data.recipes) { showToast(‘Invalid backup file.’, ‘danger’); return; }
+showInlineConfirm(
+‘Import backup?’,
+`This will merge ${data.recipes.length} recipes and ${(data.bakeLogs||[]).length} log entries with your current data.`,
+‘Import’,
+() => {
+// Merge recipes — don’t overwrite existing by ID
+const existingIds = new Set(state.recipes.map(r=>r.id));
+let added = 0;
+data.recipes.forEach(r => {
+if(!existingIds.has(r.id)) { state.recipes.push(r); added++; }
+});
+// Merge logs
+const existingLogIds = new Set(state.bakeLogs.map(l=>l.id));
+let logsAdded = 0;
+(data.bakeLogs||[]).forEach(l => {
+if(!existingLogIds.has(l.id)) { state.bakeLogs.unshift(l); logsAdded++; }
+});
+saveState();
+renderRecipeList();
+renderLog();
+showToast(`Imported ${added} recipes, ${logsAdded} logs.`, ‘success’);
+}
+);
+} catch(err) {
+showToast(‘Could not read file.’, ‘danger’);
+}
+};
+reader.readAsText(file);
+input.value = ‘’;
 }
 
 // ═══════════════════════════════════════════════════
 // SUPABASE CLOUD SYNC
 // ═══════════════════════════════════════════════════
-const SUPABASE_URL = 'https://bvmtqylxrjejzijmxphl.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bXRxeWx4cmplanppam14cGhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTUwNTcsImV4cCI6MjA5MTE5MTA1N30.Ycg_YoZD4WTFfTBVzVmKLMhKCOZ_PM5U7FQQKVPBiJY';
+const SUPABASE_URL = ‘https://bvmtqylxrjejzijmxphl.supabase.co’;
+const SUPABASE_KEY = ‘eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bXRxeWx4cmplanppam14cGhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MTUwNTcsImV4cCI6MjA5MTE5MTA1N30.Ycg_YoZD4WTFfTBVzVmKLMhKCOZ_PM5U7FQQKVPBiJY’;
 const SB_HEADERS = {
-  'Content-Type': 'application/json',
-  'apikey': SUPABASE_KEY,
-  'Authorization': `Bearer ${SUPABASE_KEY}`,
-  'Prefer': 'resolution=merge-duplicates,return=minimal'
+‘Content-Type’: ‘application/json’,
+‘apikey’: SUPABASE_KEY,
+‘Authorization’: `Bearer ${SUPABASE_KEY}`,
+‘Prefer’: ‘resolution=merge-duplicates,return=minimal’
 };
 
-let syncStatus = 'idle';
+let syncStatus = ‘idle’;
 
-function setSyncStatus(s, msg='') {
-  syncStatus = s;
-  const el = document.getElementById('sync-status');
-  if(!el) return;
-  const map = {
-    idle:    { text:'—',         color:'var(--text3)' },
-    syncing: { text:'⟳ Syncing', color:'var(--blue)'  },
-    ok:      { text:'✓ Synced',  color:'var(--green)' },
-    error:   { text:'⚠ Offline', color:'var(--accent)'}
-  };
-  const m = map[s] || map.idle;
-  el.textContent = msg || m.text;
-  el.style.color = m.color;
+function setSyncStatus(s, msg=’’) {
+syncStatus = s;
+const el = document.getElementById(‘sync-status’);
+if(!el) return;
+const map = {
+idle:    { text:’—’,         color:‘var(–text3)’ },
+syncing: { text:‘⟳ Syncing’, color:‘var(–blue)’  },
+ok:      { text:‘✓ Synced’,  color:‘var(–green)’ },
+error:   { text:‘⚠ Offline’, color:‘var(–accent)’}
+};
+const m = map[s] || map.idle;
+el.textContent = msg || m.text;
+el.style.color = m.color;
 }
 
-async function sbFetch(path, method='GET', body=null) {
-  const opts = { method, headers: SB_HEADERS };
-  if(body) opts.body = JSON.stringify(body);
-  try {
+async function sbFetch(path, method=‘GET’, body=null) {
+const opts = { method, headers: SB_HEADERS };
+if(body) opts.body = JSON.stringify(body);
+try {
 
+```
+const res = await fetch(SUPABASE_URL + path, opts);
 
+if(!res.ok) {
+  const err = await res.text();
+  console.error(`Supabase ${method} ${path} failed:`, res.status, err);
+  throw new Error(`${res.status}: ${err}`);
+}
+const text = await res.text();
+return text ? JSON.parse(text) : null;
+```
 
-    const res = await fetch(SUPABASE_URL + path, opts);
+} catch(e) {
 
-    if(!res.ok) {
-      const err = await res.text();
-      console.error(`Supabase ${method} ${path} failed:`, res.status, err);
-      throw new Error(`${res.status}: ${err}`);
-    }
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
-  } catch(e) {
+```
+throw e;
+```
 
-
-    throw e;
-  }
+}
 }
 
 // ── RECIPES ──
 async function saveRecipeToCloud(recipe) {
-  try {
-    setSyncStatus('syncing');
-    await sbFetch('/rest/v1/recipes', 'POST', {
-      id: recipe.id,
-      name: recipe.name,
-      category: recipe.category,
-      status: recipe.status,
-      notes: recipe.notes || '',
-      data: recipe
-    });
-    setSyncStatus('ok');
-  } catch(e) {
-    console.error('Save recipe error:', e.message);
-    setSyncStatus('error');
-  }
+try {
+setSyncStatus(‘syncing’);
+await sbFetch(’/rest/v1/recipes’, ‘POST’, {
+id: recipe.id,
+name: recipe.name,
+category: recipe.category,
+status: recipe.status,
+notes: recipe.notes || ‘’,
+data: recipe
+});
+setSyncStatus(‘ok’);
+} catch(e) {
+console.error(‘Save recipe error:’, e.message);
+setSyncStatus(‘error’);
+}
 }
 
 async function deleteRecipeFromCloud(id) {
-  try {
-    await sbFetch(`/rest/v1/recipes?id=eq.${id}`, 'DELETE');
-  } catch(e) { console.error('Delete recipe error:', e.message); }
+try {
+await sbFetch(`/rest/v1/recipes?id=eq.${id}`, ‘DELETE’);
+} catch(e) { console.error(‘Delete recipe error:’, e.message); }
 }
 
 async function loadRecipesFromCloud() {
-  try {
-    const rows = await sbFetch('/rest/v1/recipes?select=data&order=created_at.asc');
-    if(rows && rows.length) {
-      state.recipes = rows.map(r => r.data).filter(Boolean);
-      saveState();
-      renderRecipeList();
-    }
-  } catch(e) { console.error('Load recipes error:', e.message); }
+try {
+const rows = await sbFetch(’/rest/v1/recipes?select=data&order=created_at.asc’);
+if(rows && rows.length) {
+state.recipes = rows.map(r => r.data).filter(Boolean);
+saveState();
+renderRecipeList();
+}
+} catch(e) { console.error(‘Load recipes error:’, e.message); }
 }
 
 // ── BAKE LOGS ──
 async function saveLogToCloud(entry) {
-  try {
-    setSyncStatus('syncing');
-    await sbFetch('/rest/v1/bake_logs', 'POST', {
-      id: entry.id,
-      recipe_id: entry.recipeId || '',
-      recipe_name: entry.recipeName || '',
-      bake_date: entry.date || '',
-      data: entry
-    });
-    setSyncStatus('ok');
-  } catch(e) {
-    console.error('Save log error:', e.message);
-    setSyncStatus('error');
-  }
+try {
+setSyncStatus(‘syncing’);
+await sbFetch(’/rest/v1/bake_logs’, ‘POST’, {
+id: entry.id,
+recipe_id: entry.recipeId || ‘’,
+recipe_name: entry.recipeName || ‘’,
+bake_date: entry.date || ‘’,
+data: entry
+});
+setSyncStatus(‘ok’);
+} catch(e) {
+console.error(‘Save log error:’, e.message);
+setSyncStatus(‘error’);
+}
 }
 
 async function deleteLogFromCloud(id) {
-  try {
-    await sbFetch(`/rest/v1/bake_logs?id=eq.${id}`, 'DELETE');
-  } catch(e) { console.error('Delete log error:', e.message); }
+try {
+await sbFetch(`/rest/v1/bake_logs?id=eq.${id}`, ‘DELETE’);
+} catch(e) { console.error(‘Delete log error:’, e.message); }
 }
 
 async function loadLogsFromCloud() {
-  try {
-    const rows = await sbFetch('/rest/v1/bake_logs?select=data&order=created_at.desc');
-    if(rows && rows.length) {
-      state.bakeLogs = rows.map(r => r.data).filter(Boolean);
-      saveState();
-      renderLog();
-    }
-  } catch(e) { console.error('Load logs error:', e.message); }
+try {
+const rows = await sbFetch(’/rest/v1/bake_logs?select=data&order=created_at.desc’);
+if(rows && rows.length) {
+state.bakeLogs = rows.map(r => r.data).filter(Boolean);
+saveState();
+renderLog();
+}
+} catch(e) { console.error(‘Load logs error:’, e.message); }
 }
 
 // ── FULL LOAD — non-blocking, app works immediately ──
 function loadFromCloud() {
-  setSyncStatus('syncing');
-  // Run in background — don't await, app is already usable
-  Promise.race([
-    Promise.all([loadRecipesFromCloud(), loadLogsFromCloud()]),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000))
-  ])
-  .then(() => setSyncStatus('ok'))
-  .catch(e => {
-    console.error('Cloud load error:', e.message);
-    setSyncStatus('error');
-  });
+setSyncStatus(‘syncing’);
+// Run in background — don’t await, app is already usable
+Promise.race([
+Promise.all([loadRecipesFromCloud(), loadLogsFromCloud()]),
+new Promise((_, reject) => setTimeout(() => reject(new Error(‘timeout’)), 6000))
+])
+.then(() => setSyncStatus(‘ok’))
+.catch(e => {
+console.error(‘Cloud load error:’, e.message);
+setSyncStatus(‘error’);
+});
 }
 
 // ═══════════════════════════════════════════════════
@@ -2506,31 +2664,31 @@ calcDDT();
 
 // Restore active build display if exists
 if(state.activeBuild) {
-  const b = state.activeBuild;
-  const display = document.getElementById('al-active-build-display');
-  if(display) {
-    display.style.display = 'block';
-    display.textContent = `✓ Active build: ${b.target}g at ${b.hyd}% hyd, ratio ${b.r1}:${b.r2}:${b.r3} · Est. ${b.estLow}–${b.estHigh} hrs`;
-  }
+const b = state.activeBuild;
+const display = document.getElementById(‘al-active-build-display’);
+if(display) {
+display.style.display = ‘block’;
+display.textContent = `✓ Active build: ${b.target}g at ${b.hyd}% hyd, ratio ${b.r1}:${b.r2}:${b.r3} · Est. ${b.estLow}–${b.estHigh} hrs`;
+}
 }
 
 // Show page correctly
-document.querySelectorAll('.page').forEach(p=>p.style.display='none');
-document.getElementById('page-recipes').style.display='block';
+document.querySelectorAll(’.page’).forEach(p=>p.style.display=‘none’);
+document.getElementById(‘page-recipes’).style.display=‘block’;
 
 // Resume active bake if exists
 if(state.activeBake) {
-  document.getElementById('live-bake-pill').style.display='block';
+document.getElementById(‘live-bake-pill’).style.display=‘block’;
 }
 
 // Pending review
 if(state.pendingReview) {
-  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
-  const reviewPage = document.getElementById('page-review');
-  reviewPage.style.display='block';
-  reviewPage.classList.add('active');
-  document.getElementById('review-recipe-name').textContent=state.pendingReview.recipeName+' — Bake Review';
-  window.scrollTo(0,0);
+document.querySelectorAll(’.page’).forEach(p=>p.style.display=‘none’);
+const reviewPage = document.getElementById(‘page-review’);
+reviewPage.style.display=‘block’;
+reviewPage.classList.add(‘active’);
+document.getElementById(‘review-recipe-name’).textContent=state.pendingReview.recipeName+’ — Bake Review’;
+window.scrollTo(0,0);
 }
 
 // Boot cloud sync — non-blocking, app works immediately from local data
