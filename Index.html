@@ -1953,15 +1953,16 @@ calcAlphonse();
 }
 
 function calcAlphonse() {
+if(!document.getElementById(‘al-target’)) return;
 const target = parseFloat(document.getElementById(‘al-target’).value) || 100;
 const hydSel = document.getElementById(‘al-hydration’).value;
 document.getElementById(‘al-custom-hyd’).style.display = hydSel === ‘custom’ ? ‘block’ : ‘none’;
 const hyd = hydSel === ‘custom’ ? (parseFloat(document.getElementById(‘al-custom-hyd-val’).value) || 100) : parseFloat(hydSel);
 
-const r1 = parseFloat(document.getElementById(‘al-r1’).value) || 1;
-const r2 = parseFloat(document.getElementById(‘al-r2’).value) || 10;
-const r3 = parseFloat(document.getElementById(‘al-r3’).value) || 10;
-const roomTemp = parseFloat(document.getElementById(‘al-room-temp’).value) || 72;
+const r1 = parseFloat(document.getElementById(‘al-r1’)?.value) || 1;
+const r2 = parseFloat(document.getElementById(‘al-r2’)?.value) || 10;
+const r3 = parseFloat(document.getElementById(‘al-r3’)?.value) || 10;
+const roomTemp = parseFloat(document.getElementById(‘al-room-temp’)?.value) || 72;
 
 // Seed = target * (r1 / (r1+r2+r3))
 const seed = Math.round(target * (r1 / (r1 + r2 + r3)) * 10) / 10;
@@ -2014,6 +2015,7 @@ showToast(‘Active build synced to Planner!’, ‘success’);
 
 // ── DDT CALCULATOR ──
 function calcDDT() {
+if(!document.getElementById(‘ddt-target’)) return;
 const target = parseFloat(document.getElementById(‘ddt-target’).value) || 80;
 const room = parseFloat(document.getElementById(‘ddt-room’).value) || 72;
 const flour = parseFloat(document.getElementById(‘ddt-flour’).value) || 70;
@@ -2655,14 +2657,15 @@ setSyncStatus(‘error’);
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
-loadState();
-renderRecipeList();
-calcEdwardFeed();
-calcAlphonse();
-calcYeastConversion();
-calcDDT();
+try { loadState(); } catch(e) { console.error(‘loadState error:’, e); }
+try { renderRecipeList(); } catch(e) { console.error(‘renderRecipeList error:’, e); }
+try { calcEdwardFeed(); } catch(e) { console.error(‘calcEdwardFeed error:’, e); }
+try { calcAlphonse(); } catch(e) { console.error(‘calcAlphonse error:’, e); }
+try { calcYeastConversion(); } catch(e) { console.error(‘calcYeastConversion error:’, e); }
+try { calcDDT(); } catch(e) { console.error(‘calcDDT error:’, e); }
 
 // Restore active build display if exists
+try {
 if(state.activeBuild) {
 const b = state.activeBuild;
 const display = document.getElementById(‘al-active-build-display’);
@@ -2671,6 +2674,7 @@ display.style.display = ‘block’;
 display.textContent = `✓ Active build: ${b.target}g at ${b.hyd}% hyd, ratio ${b.r1}:${b.r2}:${b.r3} · Est. ${b.estLow}–${b.estHigh} hrs`;
 }
 }
+} catch(e) { console.error(‘activeBuild restore error:’, e); }
 
 // Show page correctly
 document.querySelectorAll(’.page’).forEach(p=>p.style.display=‘none’);
